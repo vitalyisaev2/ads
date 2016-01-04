@@ -2,8 +2,11 @@ package sorting
 
 import (
 	"github.com/stretchr/testify/assert"
+	"sort"
 	"testing"
 )
+
+type sortingFunction func(data sort.Interface)
 
 // Sortable array of integers
 type NumericalArray []int
@@ -40,7 +43,8 @@ func (ca CharacterArray) toString() string {
 	return string(ca)
 }
 
-func TestSelectionSort(t *testing.T) {
+// Generic function for different sorting algorithms
+func testSort(t *testing.T, SortingFunction sortingFunction) {
 
 	numericalArrayTests := []struct {
 		input, expected NumericalArray
@@ -73,13 +77,21 @@ func TestSelectionSort(t *testing.T) {
 	}
 
 	for _, test := range numericalArrayTests {
-		SelectionSort(test.input)
-		assert.Equal(t, test.input, test.expected)
+		SortingFunction(test.input)
+		assert.Equal(t, test.expected, test.input)
 	}
 	for _, test := range characterArrayTests {
 		input := NewCharacterArray(test.input)
-		SelectionSort(input)
-		assert.Equal(t, input.toString(), test.expected)
+		SortingFunction(input)
+		assert.Equal(t, test.expected, input.toString())
 	}
 
+}
+
+func TestSelectionSort(t *testing.T) {
+	testSort(t, SelectionSort)
+}
+
+func TestInsertionSort(t *testing.T) {
+	testSort(t, InsertionSort)
 }
