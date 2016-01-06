@@ -33,7 +33,7 @@ func (record *LinkedListRecord) searchRecursive(item LinkedListElement) *LinkedL
 // Linked List data structure
 type LinkedList struct {
 	last   *LinkedListRecord
-	length uint
+	length int
 }
 
 // Iterative item search
@@ -43,14 +43,8 @@ func (list *LinkedList) SearchIterative(item LinkedListElement) *LinkedListRecor
 		return nil
 	}
 
-	record := list.last
-	if reflect.DeepEqual(record.item, item) {
-		return record
-	}
-
-	for record.next != nil {
-		record = record.next
-		if reflect.DeepEqual(record.item, item) {
+	for record := range list.Iter() {
+		if reflect.DeepEqual(record.next.item, item) {
 			return record
 		}
 	}
@@ -74,9 +68,7 @@ func (list *LinkedList) searchPredecessor(item LinkedListElement) *LinkedListRec
 		return nil
 	}
 
-	record := list.last
-
-	for record.next != nil {
+	for record := range list.Iter() {
 		if reflect.DeepEqual(record.next.item, item) {
 			return record
 		}
@@ -129,15 +121,43 @@ func (list *LinkedList) Delete(item LinkedListElement) error {
 
 // Iterate through LinkedList
 func (list *LinkedList) Iter() <-chan *LinkedListRecord {
-	ch := make(chan *LinkedListRecord, list.length)
-	go func() {
-		record := list.last
-		ch <- record
-		for record.next != nil {
-			record = record.next
+
+	var ch chan *LinkedListRecord
+
+	// If list contains only nil element, return empty channel
+	if list.length == 0 {
+		ch = make(chan *LinkedListRecord)
+
+		// Otherwise fill buffered channel with elements
+	} else {
+		ch = make(chan *LinkedListRecord, list.length)
+		go func() {
+			record := list.last
 			ch <- record
-		}
-	}()
+			for record.next != nil {
+				record = record.next
+				ch <- record
+			}
+		}()
+	}
+
 	close(ch)
 	return ch
+}
+
+func (initial *LinkedList) EqualTo(compared *LinkedList) bool {
+
+	if initial.length != compared.length {
+		return false
+	}
+
+	initial_values := initial.Iter()
+	compared_values := compared.Iter()
+	for i := 0; i < initial.length; i++ {
+		if <-initial_values != <-compared_values {
+			return false
+		}
+	}
+
+	return true
 }
