@@ -36,6 +36,39 @@ type LinkedList struct {
 	length int
 }
 
+// Append an item to linked list
+func (list *LinkedList) Append(item LinkedListElement) {
+	record := &LinkedListRecord{item: item, next: list.last}
+	list.last = record
+	list.length += 1
+}
+
+// Iterate through LinkedList
+func (list *LinkedList) Iter() <-chan *LinkedListRecord {
+	var ch chan *LinkedListRecord
+
+	// If list contains only nil element, return empty channel
+	if list.length == 0 {
+		ch = make(chan *LinkedListRecord)
+		close(ch)
+		return ch
+	}
+
+	// Otherwise fill buffered channel with elements
+	ch = make(chan *LinkedListRecord, list.length)
+	go func() {
+		record := list.last
+		ch <- record
+		for record.next != nil {
+			record = record.next
+			ch <- record
+		}
+		close(ch)
+	}()
+
+	return ch
+}
+
 // Iterative item search
 func (list *LinkedList) SearchIterative(item LinkedListElement) *LinkedListRecord {
 
@@ -77,13 +110,6 @@ func (list *LinkedList) searchPredecessor(item LinkedListElement) *LinkedListRec
 	return nil
 }
 
-// Append an item to linked list
-func (list *LinkedList) Append(item LinkedListElement) {
-	record := &LinkedListRecord{item: item, next: list.last}
-	list.last = record
-	list.length += 1
-}
-
 // Delete an item from linked list
 func (list *LinkedList) Delete(item LinkedListElement) error {
 
@@ -119,42 +145,18 @@ func (list *LinkedList) Delete(item LinkedListElement) error {
 	return nil
 }
 
-// Iterate through LinkedList
-func (list *LinkedList) Iter() <-chan *LinkedListRecord {
-
-	var ch chan *LinkedListRecord
-
-	// If list contains only nil element, return empty channel
-	if list.length == 0 {
-		ch = make(chan *LinkedListRecord)
-
-		// Otherwise fill buffered channel with elements
-	} else {
-		ch = make(chan *LinkedListRecord, list.length)
-		go func() {
-			record := list.last
-			ch <- record
-			for record.next != nil {
-				record = record.next
-				ch <- record
-			}
-		}()
-	}
-
-	close(ch)
-	return ch
-}
-
 func (initial *LinkedList) EqualTo(compared *LinkedList) bool {
 
 	if initial.length != compared.length {
 		return false
 	}
 
-	initial_values := initial.Iter()
-	compared_values := compared.Iter()
+	initialValues := initial.Iter()
+	comparedValues := compared.Iter()
 	for i := 0; i < initial.length; i++ {
-		if <-initial_values != <-compared_values {
+		val1 := <-initialValues
+		val2 := <-comparedValues
+		if val1 != val2 {
 			return false
 		}
 	}
