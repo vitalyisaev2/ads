@@ -1,4 +1,5 @@
 // Skiena 3.1.2: pointers and linked data structures
+
 package structures
 
 import (
@@ -155,11 +156,7 @@ func (initial *LinkedList) EqualTo(compared *LinkedList) bool {
 	initialValues := initial.Iter()
 	comparedValues := compared.Iter()
 	for i := 0; i < initial.length; i++ {
-		val1 := (<-initialValues).item
-		val2 := (<-comparedValues).item
-		//fmt.Printf("%v %v\n", val1, val2)
-		//fmt.Printf("%v %v\n", reflect.ValueOf(val1).Elem(), reflect.ValueOf(val2).Elem())
-		if !reflect.DeepEqual(val1, val2) {
+		if !reflect.DeepEqual((<-initialValues).item, (<-comparedValues).item) {
 			return false
 		}
 	}

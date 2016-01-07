@@ -6,6 +6,7 @@ import (
 	"testing"
 )
 
+// Several usefull typedefs and functions
 type complexTestStruct struct {
 	num int
 	str string
@@ -16,7 +17,20 @@ func pointerComplexStructFabric() []*complexTestStruct {
 	slice = append(slice,
 		&complexTestStruct{1, "a"},
 		&complexTestStruct{2, "b"},
-		&complexTestStruct{3, "c"})
+		&complexTestStruct{3, "c"},
+		&complexTestStruct{4, "d"},
+		&complexTestStruct{5, "e"})
+	return slice
+}
+
+func valuesComplexStructFabric() []complexTestStruct {
+	slice := make([]complexTestStruct, 3)
+	slice = append(slice,
+		complexTestStruct{1, "a"},
+		complexTestStruct{2, "b"},
+		complexTestStruct{3, "c"},
+		complexTestStruct{4, "d"},
+		complexTestStruct{5, "e"})
 	return slice
 }
 
@@ -99,20 +113,52 @@ func TestLinkedListIterEmpty(t *testing.T) {
 func TestLinkedListEqualTo(t *testing.T) {
 
 	// Fill up two LinkedLists with the same elements
-	initial := new(LinkedList)
-	compared := new(LinkedList)
-	initialItems := pointerComplexStructFabric()
-	comparedItems := pointerComplexStructFabric()
+	{
+		initial := new(LinkedList)
+		compared := new(LinkedList)
+		initialItems := pointerComplexStructFabric()
+		comparedItems := pointerComplexStructFabric()
 
-	for _, item := range initialItems {
-		initial.Append(item)
-	}
-	for _, item := range comparedItems {
-		compared.Append(item)
+		for _, item := range initialItems {
+			initial.Append(item)
+		}
+		for _, item := range comparedItems {
+			compared.Append(item)
+		}
+
+		// Check equality
+		var equality bool
+		equality = initial.EqualTo(compared)
+		assert.True(t, equality)
 	}
 
-	// Check equality
-	var equality bool
-	equality = initial.EqualTo(compared)
-	assert.True(t, equality)
+	{
+		initial := new(LinkedList)
+		compared := new(LinkedList)
+		initialItems := valuesComplexStructFabric()
+		comparedItems := valuesComplexStructFabric()
+
+		for _, item := range initialItems {
+			initial.Append(item)
+		}
+		for _, item := range comparedItems {
+			compared.Append(item)
+		}
+
+		// Check equality
+		var equality bool
+		equality = initial.EqualTo(compared)
+		assert.True(t, equality)
+	}
 }
+
+// func TestLinkedListDelete(t *testing.T) {
+//
+// 	// Fill up two LinkedLists with the same elements
+// 	listBeforeDeletion := new(LinkedList)
+// 	listBeforeDeletionItems := pointerComplexStructFabric()
+//
+// 	listAfterDeletion := new(LinkedList)
+// 	listAfterDeletion := pointerComplexStructFabric()
+//
+// }
