@@ -6,6 +6,20 @@ import (
 	"testing"
 )
 
+type complexTestStruct struct {
+	num int
+	str string
+}
+
+func pointerComplexStructFabric() []*complexTestStruct {
+	slice := make([]*complexTestStruct, 3)
+	slice = append(slice,
+		&complexTestStruct{1, "a"},
+		&complexTestStruct{2, "b"},
+		&complexTestStruct{3, "c"})
+	return slice
+}
+
 func TestLinkedListAppend(t *testing.T) {
 
 	manuallyFilledList := new(LinkedList)
@@ -87,8 +101,9 @@ func TestLinkedListEqualTo(t *testing.T) {
 	// Fill up two LinkedLists with the same elements
 	initial := new(LinkedList)
 	compared := new(LinkedList)
-	initialItems := []int{1, 2, 3, 4, 5}
-	comparedItems := []int{1, 2, 3, 4, 5}
+	initialItems := pointerComplexStructFabric()
+	comparedItems := pointerComplexStructFabric()
+
 	for _, item := range initialItems {
 		initial.Append(item)
 	}
