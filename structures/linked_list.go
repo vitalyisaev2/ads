@@ -122,6 +122,9 @@ func (list *LinkedList) searchPredecessor(item LinkedListElement) *LinkedListRec
 }
 
 // Search proxy function
+// Best   - searchRecursive vs searchIterative - 13600x faster
+// Middle - searchRecursive vs searchIterative - 2.2x faster
+// Worst  - searchRecursive vs searchIterative - 1.7x faster
 func (list *LinkedList) Search(item LinkedListElement) *LinkedListRecord {
 	return list.searchRecursive(item)
 }

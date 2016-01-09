@@ -242,7 +242,7 @@ func TestLinkedListSearch(t *testing.T) {
 		}
 	}
 
-	searchTest("searchRecursive")
+	searchTest("searchIterative")
 	searchTest("Search")
 }
 
@@ -347,20 +347,39 @@ func TestLinkedListPrint(t *testing.T) {
 var searchBenchmarkLinkedList = largeLinkedListFabric()
 var searchBenchmarkRecord *LinkedListRecord
 
-func BenchmarkLinkedListSearchRecursive(b *testing.B) {
+func benchmarkLinkedListSearch(b *testing.B, desiredElement LinkedListElement, regime string) {
 	var r *LinkedListRecord
-	desiredElement := LinkedListElement(32768)
 	for n := 0; n < b.N; n++ {
-		r = searchBenchmarkLinkedList.searchRecursive(desiredElement)
+		switch regime {
+		case "recursive":
+			r = searchBenchmarkLinkedList.searchRecursive(desiredElement)
+		case "iterative":
+			r = searchBenchmarkLinkedList.searchIterative(desiredElement)
+		}
 	}
 	searchBenchmarkRecord = r
 }
 
-func BenchmarkLinkedListSearchIterative(b *testing.B) {
-	var r *LinkedListRecord
-	desiredElement := LinkedListElement(32768)
-	for n := 0; n < b.N; n++ {
-		r = searchBenchmarkLinkedList.searchIterative(desiredElement)
-	}
-	searchBenchmarkRecord = r
+func BenchmarkLinkedListSearchRecursiveBest(b *testing.B) {
+	benchmarkLinkedListSearch(b, LinkedListElement(65534), "recursive")
+}
+
+func BenchmarkLinkedListSearchIterativeBest(b *testing.B) {
+	benchmarkLinkedListSearch(b, LinkedListElement(65534), "iterative")
+}
+
+func BenchmarkLinkedListSearchRecursiveMiddle(b *testing.B) {
+	benchmarkLinkedListSearch(b, LinkedListElement(32768), "recursive")
+}
+
+func BenchmarkLinkedListSearchIterativeMiddle(b *testing.B) {
+	benchmarkLinkedListSearch(b, LinkedListElement(32768), "iterative")
+}
+
+func BenchmarkLinkedListSearchRecursiveWorst(b *testing.B) {
+	benchmarkLinkedListSearch(b, LinkedListElement(0), "recursive")
+}
+
+func BenchmarkLinkedListSearchIterativeWorst(b *testing.B) {
+	benchmarkLinkedListSearch(b, LinkedListElement(0), "iterative")
 }
