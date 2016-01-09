@@ -3,10 +3,11 @@ package structures
 import (
 	"fmt"
 	"github.com/stretchr/testify/assert"
+	"math"
 	"testing"
 )
 
-// Several usefull typedefs and functions
+///////////////////// Helpers ////////////////////////
 type complexTestStruct struct {
 	num int
 	str string
@@ -51,6 +52,18 @@ func valuesLinkedListElementFabric() []LinkedListElement {
 		LinkedListElement(complexTestStruct{5, "e"})}
 	return slice
 }
+
+func largeLinkedListFabric() *LinkedList {
+	list := new(LinkedList)
+	var slice []LinkedListElement
+	for i := 0; i < math.MaxUint16; i++ {
+		slice = append(slice, LinkedListElement(i))
+	}
+	list.Extend(slice)
+	return list
+}
+
+///////////////////// Unit Tests ////////////////////////
 
 // LinkedList.Append
 func TestLinkedListAppend(t *testing.T) {
@@ -327,4 +340,27 @@ func TestLinkedListPrint(t *testing.T) {
 		list := new(LinkedList)
 		list.Print()
 	}
+}
+
+//////////////////////////// Benchmarks ///////////////////////////
+
+var searchBenchmarkLinkedList = largeLinkedListFabric()
+var searchBenchmarkRecord *LinkedListRecord
+
+func BenchmarkLinkedListSearchRecursive(b *testing.B) {
+	var r *LinkedListRecord
+	desiredElement := LinkedListElement(32768)
+	for n := 0; n < b.N; n++ {
+		r = searchBenchmarkLinkedList.searchRecursive(desiredElement)
+	}
+	searchBenchmarkRecord = r
+}
+
+func BenchmarkLinkedListSearchIterative(b *testing.B) {
+	var r *LinkedListRecord
+	desiredElement := LinkedListElement(32768)
+	for n := 0; n < b.N; n++ {
+		r = searchBenchmarkLinkedList.searchIterative(desiredElement)
+	}
+	searchBenchmarkRecord = r
 }

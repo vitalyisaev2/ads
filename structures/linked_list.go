@@ -94,8 +94,6 @@ func (list *LinkedList) searchIterative(item LinkedListElement) *LinkedListRecor
 	return nil
 }
 
-type LinkedListSearchFunction func(item LinkedListElement) *LinkedListRecord
-
 // Recursive item search
 func (list *LinkedList) searchRecursive(item LinkedListElement) *LinkedListRecord {
 
@@ -125,7 +123,7 @@ func (list *LinkedList) searchPredecessor(item LinkedListElement) *LinkedListRec
 
 // Search proxy function
 func (list *LinkedList) Search(item LinkedListElement) *LinkedListRecord {
-	return list.searchIterative(item)
+	return list.searchRecursive(item)
 }
 
 // Delete an item from linked list
