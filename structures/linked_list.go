@@ -106,6 +106,7 @@ func (list *LinkedList) searchRecursive(item LinkedListElement) *LinkedListRecor
 
 // Search a predecessor for a record containing specified item
 func (list *LinkedList) searchPredecessor(item LinkedListElement) *LinkedListRecord {
+
 	if list.last == nil || list.last.next == nil {
 		return nil
 	}
