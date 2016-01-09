@@ -44,6 +44,14 @@ func (list *LinkedList) Append(item LinkedListElement) {
 	list.length += 1
 }
 
+// Extend LinkedList with the elements of another one
+// (inspired by Python's list.extend() function)
+func (list *LinkedList) Extend(items []LinkedListElement) {
+	for _, item := range items {
+		list.Append(item)
+	}
+}
+
 // Iterate through LinkedList
 func (list *LinkedList) Iter() <-chan *LinkedListRecord {
 	var ch chan *LinkedListRecord
@@ -71,14 +79,14 @@ func (list *LinkedList) Iter() <-chan *LinkedListRecord {
 }
 
 // Iterative item search
-func (list *LinkedList) SearchIterative(item LinkedListElement) *LinkedListRecord {
+func (list *LinkedList) searchIterative(item LinkedListElement) *LinkedListRecord {
 
 	if list.last == nil {
 		return nil
 	}
 
 	for record := range list.Iter() {
-		if reflect.DeepEqual(record.next.item, item) {
+		if reflect.DeepEqual(record.item, item) {
 			return record
 		}
 	}
@@ -86,8 +94,10 @@ func (list *LinkedList) SearchIterative(item LinkedListElement) *LinkedListRecor
 	return nil
 }
 
+type LinkedListSearchFunction func(item LinkedListElement) *LinkedListRecord
+
 // Recursive item search
-func (list *LinkedList) SearchRecursive(item LinkedListElement) *LinkedListRecord {
+func (list *LinkedList) searchRecursive(item LinkedListElement) *LinkedListRecord {
 
 	if list.last == nil {
 		return nil
@@ -103,16 +113,29 @@ func (list *LinkedList) searchPredecessor(item LinkedListElement) *LinkedListRec
 	}
 
 	for record := range list.Iter() {
-		if reflect.DeepEqual(record.next.item, item) {
-			return record
+		if record.next != nil {
+			if reflect.DeepEqual(record.next.item, item) {
+				return record
+			}
 		}
 	}
 
 	return nil
 }
 
+// Search proxy function
+func (list *LinkedList) Search(item LinkedListElement) *LinkedListRecord {
+	return list.searchIterative(item)
+}
+
 // Delete an item from linked list
 func (list *LinkedList) Delete(item LinkedListElement) error {
+
+	// Error fabric function
+	itemNotFound := func() error {
+		msg := fmt.Sprintf("Element %#v wasn't found", item)
+		return errors.New(msg)
+	}
 
 	if list.last == nil {
 		err := errors.New("Attempting to perform Delete operation on empty list")
@@ -121,26 +144,26 @@ func (list *LinkedList) Delete(item LinkedListElement) error {
 
 	predecessor := list.searchPredecessor(item)
 
-	// If list contains the only element
-	if predecessor == nil && list.last.next == nil {
+	// Predecessor is not found
+	if predecessor == nil {
 
+		// Case 1: There are many items in LinkedList, so the item is just not found
+		if list.last.next != nil {
+			return itemNotFound()
+		}
+		// Case 2: Probably there is an only item in LinkedList, therefore it hasn't a predecessor
 		// Delete this element if matches
 		if reflect.DeepEqual(list.last.item, item) {
 			list.last = nil
 			list.length -= 1
-			if list.length != 0 {
-				msg := fmt.Sprintf("LinkedList length is %d after deleting last element", list.length)
-				panic(errors.New(msg))
-			}
-
-			// Return error otherwise
+			return nil
 		} else {
-			msg := fmt.Sprintf("Element %v wasn't found", item)
-			return errors.New(msg)
+			// Return itemNotFound otherwise
+			return itemNotFound()
 		}
 	}
 
-	// Otherwise replace predecessor's pointer
+	// Predecessor was found: now replace predecessor's pointer
 	predecessor.next = predecessor.next.next
 	list.length -= 1
 	return nil
@@ -162,4 +185,13 @@ func (initial *LinkedList) EqualTo(compared *LinkedList) bool {
 	}
 
 	return true
+}
+
+// Print out LinkedList values (only for debug)
+func (list *LinkedList) Print() {
+	counter := 1
+	for record := range list.Iter() {
+		fmt.Printf("%d: item: %#v self: %p next: %p\n", counter, record.item, record, record.next)
+		counter++
+	}
 }
