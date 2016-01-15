@@ -270,9 +270,9 @@ func TestLinkedListDelete(t *testing.T) {
 		equality := testingLinkedList.EqualTo(checkingLinkedList)
 		if !assert.True(t, equality) {
 			fmt.Printf("testingLinkedList (length=%d)\n", testingLinkedList.length)
-			testingLinkedList.Print()
+			//testingLinkedList.Print()
 			fmt.Printf("checkingLinkedList (length=%d)\n", checkingLinkedList.length)
-			checkingLinkedList.Print()
+			//checkingLinkedList.Print()
 		}
 
 		// Check length decreasing
@@ -284,7 +284,7 @@ func TestLinkedListDelete(t *testing.T) {
 		assert.NotNil(t, predecessorRecord, followerRecord)
 		if !assert.Equal(t, predecessorRecord.next, followerRecord) {
 			fmt.Printf("testingLinkedList (length=%d)\n", testingLinkedList.length)
-			testingLinkedList.Print()
+			//testingLinkedList.Print()
 		}
 	}
 
@@ -324,21 +324,6 @@ func TestLinkedListDelete(t *testing.T) {
 
 		result := testingLinkedList.Delete(removedElement)
 		assert.Error(t, result)
-	}
-}
-
-func TestLinkedListPrint(t *testing.T) {
-	// Case 1: print filled LinkedList
-	{
-		list := new(LinkedList)
-		list.Extend(pointersLinkedListElementFabric())
-		list.Print()
-	}
-
-	// Case 2: print empty LinkedList
-	{
-		list := new(LinkedList)
-		list.Print()
 	}
 }
 

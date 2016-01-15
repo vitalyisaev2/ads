@@ -188,12 +188,3 @@ func (initial *LinkedList) EqualTo(compared *LinkedList) bool {
 
 	return true
 }
-
-// Print out LinkedList values (only for debug)
-func (list *LinkedList) Print() {
-	counter := 1
-	for record := range list.Iter() {
-		fmt.Printf("%d: item: %#v self: %p next: %p\n", counter, record.item, record, record.next)
-		counter++
-	}
-}

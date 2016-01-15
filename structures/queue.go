@@ -3,53 +3,125 @@
 package structures
 
 import (
-//"fmt"
+	"sync"
 )
+
+///////////// Resizable channel is a part of queue ////////////////
 
 type QueueElement interface{}
 
+type QueueChannel chan *QueueElement
+
+func (qc QueueChannel) bufferIncrease(multiplier int) {
+	capacity := cap(qc)
+	new_qc := make(QueueChannel, capacity*multiplier)
+	for i := 0; i < len(new_qc); i++ {
+		item := <-qc
+		new_qc <- item
+	}
+	qc = new_qc
+}
+
+func (qc QueueChannel) bufferDecrease(multiplier int) {
+	capacity := cap(qc)
+	new_qc := make(QueueChannel, int(capacity/multiplier))
+	for i := 0; i < len(new_qc); i++ {
+		item := <-qc
+		new_qc <- item
+	}
+	qc = new_qc
+}
+
 type Queue struct {
-	items           []*QueueElement
-	enqueueRequests chan *QueueElement
-	dequeueRequests chan interface{}
-	dequeueResults  chan *QueueElement
+	enqueue    QueueChannel
+	queue      QueueChannel
+	dequeue    chan QueueChannel
+	occupancy  chan bool
+	multiplier int
+	mutex      sync.Mutex
+}
+
+func NewQueue(capacity, multiplier int) *Queue {
+	enqueue := make(QueueChannel)
+	queue := make(QueueChannel, capacity)
+	dequeue := make(chan QueueChannel)
+	occupancy := make(chan bool)
+	mutex := sync.Mutex{}
+
+	q := &Queue{
+		enqueue, queue, dequeue, occupancy, multiplier, mutex,
+	}
+	q.Poll()
+	return q
+}
+
+func (q Queue) Poll() {
+
+	const t = true
+
+	// Enqueuer
+	go func() {
+		defer func() {
+			close(q.enqueue)
+			close(q.queue)
+		}()
+		for {
+			select {
+
+			case item := <-q.enqueue:
+
+				// Resize channel if there's no enough space
+				if len(q.queue) == cap(q.queue) {
+					q.mutex.Lock()
+					q.queue.bufferIncrease(q.multiplier)
+					q.mutex.Unlock()
+				}
+
+				// Enqueue item
+				q.queue <- item
+
+				// Tell to the Dequeuer that there's something in channel
+				go func() {
+					q.occupancy <- t
+				}()
+
+			}
+		}
+	}()
+
+	// Dequeuer (will block if there's nothing to read)
+	go func() {
+		defer func() {
+			close(q.dequeue)
+		}()
+		for {
+			select {
+			case ch := <-q.dequeue:
+
+				// Wait till channel will contain some data
+				<-q.occupancy
+
+				// Read element and send it to user
+				item := <-q.queue
+				ch <- item
+				close(ch)
+
+				if len(q.queue) < int(cap(q.queue)/q.multiplier) {
+					q.mutex.Lock()
+					q.queue.bufferDecrease(q.multiplier)
+					q.mutex.Unlock()
+				}
+			}
+		}
+	}()
 }
 
 func (q *Queue) Enqueue(item *QueueElement) {
-	q.enqueueRequests <- item
+	q.enqueue <- item
 }
 
-func (q *Queue) Dequeue() *QueueElement {
-	var request struct{}
-	q.dequeueRequests <- request
-	return <-q.dequeueResults
-}
-
-func (q *Queue) poll() {
-	defer func() {
-		close(q.enqueueRequests)
-		close(q.dequeueResults)
-		close(q.dequeueResults)
-	}()
-
-	for {
-
-		select {
-		case item := <-q.enqueueRequests:
-			q.items = append(q.items, item)
-		case <-q.dequeueRequests:
-			q.dequeueResults <- q.items[0]
-			q.items = q.items[1:]
-		}
-	}
-}
-
-func NewQueue() *Queue {
-	q := new(Queue)
-	q.enqueueRequests = make(chan *QueueElement)
-	q.dequeueRequests = make(chan interface{})
-	q.dequeueResults = make(chan *QueueElement)
-
-	go q.poll()
-	return q
+func (q *Queue) Dequeue() <-chan *QueueElement {
+	ch := make(QueueChannel)
+	q.dequeue <- ch
+	return ch
 }
