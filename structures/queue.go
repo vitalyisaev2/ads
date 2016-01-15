@@ -37,6 +37,7 @@ type Queue struct {
 	queue      QueueChannel
 	dequeue    chan QueueChannel
 	occupancy  chan bool
+	capacity   int
 	multiplier int
 	mutex      sync.Mutex
 }
@@ -49,7 +50,7 @@ func NewQueue(capacity, multiplier int) *Queue {
 	mutex := sync.Mutex{}
 
 	q := &Queue{
-		enqueue, queue, dequeue, occupancy, multiplier, mutex,
+		enqueue, queue, dequeue, occupancy, capacity, multiplier, mutex,
 	}
 	q.Poll()
 	return q
@@ -106,6 +107,7 @@ func (q Queue) Poll() {
 				ch <- item
 				close(ch)
 
+				//if len(q.queue) < int(cap(q.queue)/q.multiplier) && (cap(q.queue)*q.multiplier > q.capacity) {
 				if len(q.queue) < int(cap(q.queue)/q.multiplier) {
 					q.mutex.Lock()
 					q.queue.bufferDecrease(q.multiplier)
