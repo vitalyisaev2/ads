@@ -36,7 +36,7 @@ func TestQueueIntValues(t *testing.T) {
 
 // Send and check Int pointers
 func TestQueueIntPointers(t *testing.T) {
-	q := NewQueue("mutex", 1024, 2)
+	q := NewQueue("mutex", 2, 2)
 	ch := make(chan bool, 2)
 	go func() {
 		for i := 0; i < limit; i++ {
@@ -67,7 +67,7 @@ func BenchmarkQueue(b *testing.B) {
 	var r interface{}
 
 	for n := 0; n < b.N; n++ {
-		q := NewQueue("mutex", 1024, 2)
+		q := NewQueue("mutex", 2, 2)
 		ch := make(chan bool, 2)
 		go func() {
 			for i := 0; i < math.MaxUint16; i++ {

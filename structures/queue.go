@@ -41,6 +41,25 @@ type Queue interface {
 	Len() int
 }
 
+// Queue fabric
+func NewQueue(kind string, capacity, multiplier int) Queue {
+	enqueue := make(QueueChannel)
+	queue := make(QueueChannel, capacity)
+	dequeue := make(chan QueueChannel)
+	occupancy := make(chan struct{})
+	mutex := sync.Mutex{}
+
+	var q Queue
+	if kind == "mutex" {
+		q = &mutexQueue{
+			basicQueue{enqueue, queue, dequeue, occupancy, capacity, multiplier},
+			mutex,
+		}
+	}
+	q.Poll()
+	return q
+}
+
 // basicQueue has no Poll() implementation
 type basicQueue struct {
 	enqueue    QueueChannel
@@ -63,6 +82,7 @@ func (q *basicQueue) Dequeue() <-chan interface{} {
 	return ch
 }
 
+// Returns the length of inner channel
 func (q *basicQueue) Len() int {
 	return len(q.queue)
 }
@@ -74,6 +94,7 @@ type mutexQueue struct {
 	mutex sync.Mutex
 }
 
+// mutexQueue should Poll
 func (q *mutexQueue) Poll() {
 
 	// Enqueuer
@@ -133,22 +154,4 @@ func (q *mutexQueue) Poll() {
 			}
 		}
 	}()
-}
-
-func NewQueue(kind string, capacity, multiplier int) Queue {
-	enqueue := make(QueueChannel)
-	queue := make(QueueChannel, capacity)
-	dequeue := make(chan QueueChannel)
-	occupancy := make(chan struct{})
-	mutex := sync.Mutex{}
-
-	var q Queue
-	if kind == "mutex" {
-		q = &mutexQueue{
-			basicQueue{enqueue, queue, dequeue, occupancy, capacity, multiplier},
-			mutex,
-		}
-	}
-	q.Poll()
-	return q
 }
