@@ -3,12 +3,14 @@
 package structures
 
 import (
-	//"fmt"
 	"sync"
 )
 
+// QueueChannel is a resizable channel of interface{} type
 type QueueChannel chan interface{}
 
+// Replace the channel with another one with capacity increased in
+// multiplier times
 func (qc QueueChannel) bufferIncrease(multiplier int) {
 	capacity := cap(qc)
 	new_qc := make(chan interface{}, capacity*multiplier)
@@ -19,6 +21,8 @@ func (qc QueueChannel) bufferIncrease(multiplier int) {
 	qc = new_qc
 }
 
+// Replace the channel with another one with capacity decreased in
+// divider times
 func (qc QueueChannel) bufferDecrease(divider int) {
 	capacity := cap(qc)
 	new_qc := make(chan interface{}, int(capacity/divider))
@@ -29,28 +33,45 @@ func (qc QueueChannel) bufferDecrease(divider int) {
 	qc = new_qc
 }
 
-type mutexQueue struct {
+// Queue interface
+type Queue interface {
+	Poll()
+	Enqueue(interface{})
+	Dequeue() <-chan interface{}
+	Len() int
+}
+
+// basicQueue has no Poll() implementation
+type basicQueue struct {
 	enqueue    QueueChannel
 	queue      QueueChannel
 	dequeue    chan QueueChannel
 	occupancy  chan struct{}
 	capacity   int
 	multiplier int
-	mutex      sync.Mutex
 }
 
-func NewMutexQueue(capacity, multiplier int) *mutexQueue {
-	enqueue := make(QueueChannel)
-	queue := make(QueueChannel, capacity)
-	dequeue := make(chan QueueChannel)
-	occupancy := make(chan struct{})
-	mutex := sync.Mutex{}
+// Pushes item to the end of the Queue
+func (q *basicQueue) Enqueue(item interface{}) {
+	q.enqueue <- item
+}
 
-	q := &mutexQueue{
-		enqueue, queue, dequeue, occupancy, capacity, multiplier, mutex,
-	}
-	q.Poll()
-	return q
+// Pops item from the beginning of the Queue
+func (q *basicQueue) Dequeue() <-chan interface{} {
+	ch := make(chan interface{})
+	q.dequeue <- ch
+	return ch
+}
+
+func (q *basicQueue) Len() int {
+	return len(q.queue)
+}
+
+// In a mutexQueue mutex is used for preserving main channel
+// from the corruption
+type mutexQueue struct {
+	basicQueue
+	mutex sync.Mutex
 }
 
 func (q *mutexQueue) Poll() {
@@ -114,12 +135,20 @@ func (q *mutexQueue) Poll() {
 	}()
 }
 
-func (q *mutexQueue) Enqueue(item interface{}) {
-	q.enqueue <- item
-}
+func NewQueue(kind string, capacity, multiplier int) Queue {
+	enqueue := make(QueueChannel)
+	queue := make(QueueChannel, capacity)
+	dequeue := make(chan QueueChannel)
+	occupancy := make(chan struct{})
+	mutex := sync.Mutex{}
 
-func (q *mutexQueue) Dequeue() <-chan interface{} {
-	ch := make(chan interface{})
-	q.dequeue <- ch
-	return ch
+	var q Queue
+	if kind == "mutex" {
+		q = &mutexQueue{
+			basicQueue{enqueue, queue, dequeue, occupancy, capacity, multiplier},
+			mutex,
+		}
+	}
+	q.Poll()
+	return q
 }

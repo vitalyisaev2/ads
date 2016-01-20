@@ -13,7 +13,7 @@ const limit = math.MaxUint8
 // Send and check Int values
 func TestQueueIntValues(t *testing.T) {
 
-	q := NewMutexQueue(1024, 2)
+	q := NewQueue("mutex", 1024, 2)
 	ch := make(chan bool, 2)
 	go func() {
 		for i := 0; i < limit; i++ {
@@ -31,12 +31,12 @@ func TestQueueIntValues(t *testing.T) {
 	}()
 	<-ch
 	<-ch
-	assert.Equal(t, 0, len(q.queue))
+	assert.Equal(t, 0, q.Len())
 }
 
 // Send and check Int pointers
 func TestQueueIntPointers(t *testing.T) {
-	q := NewMutexQueue(1024, 2)
+	q := NewQueue("mutex", 1024, 2)
 	ch := make(chan bool, 2)
 	go func() {
 		for i := 0; i < limit; i++ {
@@ -55,7 +55,7 @@ func TestQueueIntPointers(t *testing.T) {
 	}()
 	<-ch
 	<-ch
-	assert.Equal(t, 0, len(q.queue))
+	assert.Equal(t, 0, q.Len())
 }
 
 // ------------------ Benchmark  -------------------
@@ -65,9 +65,9 @@ var queueBenchmarkElement interface{}
 func BenchmarkQueue(b *testing.B) {
 
 	var r interface{}
-	q := NewMutexQueue(1024, 2)
 
 	for n := 0; n < b.N; n++ {
+		q := NewQueue("mutex", 1024, 2)
 		ch := make(chan bool, 2)
 		go func() {
 			for i := 0; i < math.MaxUint16; i++ {
