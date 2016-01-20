@@ -3,18 +3,15 @@
 package structures
 
 import (
+	//"fmt"
 	"sync"
 )
 
-///////////// Resizable channel is a part of queue ////////////////
-
-type QueueElement interface{}
-
-type QueueChannel chan *QueueElement
+type QueueChannel chan interface{}
 
 func (qc QueueChannel) bufferIncrease(multiplier int) {
 	capacity := cap(qc)
-	new_qc := make(QueueChannel, capacity*multiplier)
+	new_qc := make(chan interface{}, capacity*multiplier)
 	for i := 0; i < len(new_qc); i++ {
 		item := <-qc
 		new_qc <- item
@@ -22,9 +19,9 @@ func (qc QueueChannel) bufferIncrease(multiplier int) {
 	qc = new_qc
 }
 
-func (qc QueueChannel) bufferDecrease(multiplier int) {
+func (qc QueueChannel) bufferDecrease(divider int) {
 	capacity := cap(qc)
-	new_qc := make(QueueChannel, int(capacity/multiplier))
+	new_qc := make(chan interface{}, int(capacity/divider))
 	for i := 0; i < len(new_qc); i++ {
 		item := <-qc
 		new_qc <- item
@@ -32,33 +29,31 @@ func (qc QueueChannel) bufferDecrease(multiplier int) {
 	qc = new_qc
 }
 
-type Queue struct {
+type mutexQueue struct {
 	enqueue    QueueChannel
 	queue      QueueChannel
 	dequeue    chan QueueChannel
-	occupancy  chan bool
+	occupancy  chan struct{}
 	capacity   int
 	multiplier int
 	mutex      sync.Mutex
 }
 
-func NewQueue(capacity, multiplier int) *Queue {
+func NewMutexQueue(capacity, multiplier int) *mutexQueue {
 	enqueue := make(QueueChannel)
 	queue := make(QueueChannel, capacity)
 	dequeue := make(chan QueueChannel)
-	occupancy := make(chan bool)
+	occupancy := make(chan struct{})
 	mutex := sync.Mutex{}
 
-	q := &Queue{
+	q := &mutexQueue{
 		enqueue, queue, dequeue, occupancy, capacity, multiplier, mutex,
 	}
 	q.Poll()
 	return q
 }
 
-func (q Queue) Poll() {
-
-	const t = true
+func (q *mutexQueue) Poll() {
 
 	// Enqueuer
 	go func() {
@@ -83,7 +78,7 @@ func (q Queue) Poll() {
 
 				// Tell to the Dequeuer that there's something in channel
 				go func() {
-					q.occupancy <- t
+					q.occupancy <- struct{}{}
 				}()
 
 			}
@@ -107,8 +102,9 @@ func (q Queue) Poll() {
 				ch <- item
 				close(ch)
 
-				//if len(q.queue) < int(cap(q.queue)/q.multiplier) && (cap(q.queue)*q.multiplier > q.capacity) {
-				if len(q.queue) < int(cap(q.queue)/q.multiplier) {
+				// Decrease main channel capacity in order to free unused memory
+				queueCap, queueLen := cap(q.queue), len(q.queue)
+				if queueLen < int(queueCap/q.multiplier) && (queueCap*q.multiplier > q.capacity) {
 					q.mutex.Lock()
 					q.queue.bufferDecrease(q.multiplier)
 					q.mutex.Unlock()
@@ -118,12 +114,12 @@ func (q Queue) Poll() {
 	}()
 }
 
-func (q *Queue) Enqueue(item *QueueElement) {
+func (q *mutexQueue) Enqueue(item interface{}) {
 	q.enqueue <- item
 }
 
-func (q *Queue) Dequeue() <-chan *QueueElement {
-	ch := make(QueueChannel)
+func (q *mutexQueue) Dequeue() <-chan interface{} {
+	ch := make(chan interface{})
 	q.dequeue <- ch
 	return ch
 }
