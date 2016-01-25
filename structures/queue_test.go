@@ -7,23 +7,26 @@ import (
 	"testing"
 )
 
+const (
+	maxQueueItemsAmount = math.MaxUint8
+	defaultCapacity     = 1 << 10
+	defaultMultiplier   = 1 << 2
+)
+
 //---------------------- Tests ------------------------
-const limit = math.MaxUint8
 
 // Send and check Int values
-func TestQueueIntValues(t *testing.T) {
-
-	q := NewQueue("mutex", 1024, 2)
+func queueIntValues(q Queue, t *testing.T) {
 	ch := make(chan bool, 2)
 	go func() {
-		for i := 0; i < limit; i++ {
+		for i := 0; i < maxQueueItemsAmount; i++ {
 			q.Enqueue(i)
 		}
 		ch <- true
 	}()
 	go func() {
 		var r int
-		for i := 0; i < limit; i++ {
+		for i := 0; i < maxQueueItemsAmount; i++ {
 			r = (<-q.Dequeue()).(int)
 			assert.Equal(t, i, r)
 		}
@@ -35,11 +38,10 @@ func TestQueueIntValues(t *testing.T) {
 }
 
 // Send and check Int pointers
-func TestQueueIntPointers(t *testing.T) {
-	q := NewQueue("mutex", 2, 2)
+func queueIntPointers(q Queue, t *testing.T) {
 	ch := make(chan bool, 2)
 	go func() {
-		for i := 0; i < limit; i++ {
+		for i := 0; i < maxQueueItemsAmount; i++ {
 			x := i
 			q.Enqueue(&x)
 		}
@@ -47,7 +49,7 @@ func TestQueueIntPointers(t *testing.T) {
 	}()
 	go func() {
 		var r *int
-		for i := 0; i < limit; i++ {
+		for i := 0; i < maxQueueItemsAmount; i++ {
 			r = (<-q.Dequeue()).(*int)
 			assert.Equal(t, i, *r)
 		}
@@ -58,25 +60,44 @@ func TestQueueIntPointers(t *testing.T) {
 	assert.Equal(t, 0, q.Len())
 }
 
+func TestMutexLockQueueIntValues(t *testing.T) {
+	q := NewQueue("mutexLockQueue", defaultCapacity, defaultMultiplier)
+	queueIntValues(q, t)
+}
+
+func TestMutexLockQueueIntPointers(t *testing.T) {
+	q := NewQueue("mutexLockQueue", defaultCapacity, defaultMultiplier)
+	queueIntPointers(q, t)
+}
+
+func TestChannelLockQueueIntValues(t *testing.T) {
+	q := NewQueue("channelLockQueue", defaultCapacity, defaultMultiplier)
+	queueIntValues(q, t)
+}
+
+func TestChannelLockQueueIntPointers(t *testing.T) {
+	q := NewQueue("channelLockQueue", defaultCapacity, defaultMultiplier)
+	queueIntPointers(q, t)
+}
+
 // ------------------ Benchmark  -------------------
 
 var queueBenchmarkElement interface{}
 
-func BenchmarkQueue(b *testing.B) {
+func benchmarkQueue(q Queue, b *testing.B) {
 
 	var r interface{}
 
 	for n := 0; n < b.N; n++ {
-		q := NewQueue("mutex", 2, 2)
 		ch := make(chan bool, 2)
 		go func() {
-			for i := 0; i < math.MaxUint16; i++ {
+			for i := 0; i < maxQueueItemsAmount; i++ {
 				q.Enqueue(i)
 			}
 			ch <- true
 		}()
 		go func() {
-			for i := 0; i < math.MaxUint16; i++ {
+			for i := 0; i < maxQueueItemsAmount; i++ {
 				r = <-q.Dequeue()
 			}
 			ch <- true
@@ -85,4 +106,14 @@ func BenchmarkQueue(b *testing.B) {
 		<-ch
 	}
 	queueBenchmarkElement = r
+}
+
+func BenchmarkMutexQueue(b *testing.B) {
+	q := NewQueue("mutexLockQueue", defaultCapacity, defaultMultiplier)
+	benchmarkQueue(q, b)
+}
+
+func BenchmarkChannelQueue(b *testing.B) {
+	q := NewQueue("channelLockQueue", defaultCapacity, defaultMultiplier)
+	benchmarkQueue(q, b)
 }

@@ -6,6 +6,16 @@ import (
 	"sync"
 )
 
+// ----------------------- Queue -------------------------------
+type Queue interface {
+	Poll()
+	Enqueue(interface{})
+	Dequeue() <-chan interface{}
+	Len() int
+}
+
+// ---------------------- Queue Channel -------------------------
+
 // QueueChannel is a resizable channel of interface{} type
 type QueueChannel chan interface{}
 
@@ -33,32 +43,7 @@ func (qc QueueChannel) bufferDecrease(divider int) {
 	qc = new_qc
 }
 
-// Queue interface
-type Queue interface {
-	Poll()
-	Enqueue(interface{})
-	Dequeue() <-chan interface{}
-	Len() int
-}
-
-// Queue fabric
-func NewQueue(kind string, capacity, multiplier int) Queue {
-	enqueue := make(QueueChannel)
-	queue := make(QueueChannel, capacity)
-	dequeue := make(chan QueueChannel)
-	occupancy := make(chan struct{})
-	mutex := sync.Mutex{}
-
-	var q Queue
-	if kind == "mutex" {
-		q = &mutexQueue{
-			basicQueue{enqueue, queue, dequeue, occupancy, capacity, multiplier},
-			mutex,
-		}
-	}
-	q.Poll()
-	return q
-}
+// ---------------------- Basic Queue -------------------------
 
 // basicQueue has no Poll() implementation
 type basicQueue struct {
@@ -82,20 +67,16 @@ func (q *basicQueue) Dequeue() <-chan interface{} {
 	return ch
 }
 
-// Returns the length of inner channel
-func (q *basicQueue) Len() int {
-	return len(q.queue)
-}
+// ---------------------- Queue with mutex-based synchronization -------------------------
 
-// In a mutexQueue mutex is used for preserving main channel
-// from the corruption
-type mutexQueue struct {
+// Mutex can be used for preserving main channel from corruption
+type mutexLockQueue struct {
 	basicQueue
 	mutex sync.Mutex
 }
 
-// mutexQueue should Poll
-func (q *mutexQueue) Poll() {
+// mutexLockQueue should Poll
+func (q *mutexLockQueue) Poll() {
 
 	// Enqueuer
 	go func() {
@@ -154,4 +135,116 @@ func (q *mutexQueue) Poll() {
 			}
 		}
 	}()
+}
+
+// Returns the length of inner channel
+func (q *mutexLockQueue) Len() int {
+	q.mutex.Lock()
+	defer q.mutex.Unlock()
+	return len(q.queue)
+}
+
+// ---------------------- Queue with channel-based synchronization -------------------------
+
+type channelLockQueue struct {
+	basicQueue
+	lock chan struct{}
+}
+
+func (q *channelLockQueue) Poll() {
+
+	// First unlock the queue for then enqueuer
+	q.lock <- struct{}{}
+
+	// Enqueuer
+	go func() {
+		defer func() {
+			close(q.enqueue)
+			close(q.queue)
+		}()
+		for {
+			select {
+
+			case item := <-q.enqueue:
+
+				// Resize channel if there's no enough space
+				if len(q.queue) == cap(q.queue) {
+					<-q.lock
+					q.queue.bufferIncrease(q.multiplier)
+					q.lock <- struct{}{}
+				}
+
+				// Enqueue item
+				q.queue <- item
+
+				// Tell to the Dequeuer that there's something in channel
+				go func() {
+					q.occupancy <- struct{}{}
+				}()
+
+			}
+		}
+	}()
+
+	// Dequeuer (will block if there's nothing to read)
+	go func() {
+		defer func() {
+			close(q.dequeue)
+		}()
+		for {
+			select {
+			case ch := <-q.dequeue:
+
+				// Wait till channel will contain some data
+				<-q.occupancy
+
+				// Read element and send it to user
+				item := <-q.queue
+				ch <- item
+				close(ch)
+
+				// Decrease main channel capacity in order to free unused memory
+				queueCap, queueLen := cap(q.queue), len(q.queue)
+				if queueLen < int(queueCap/q.multiplier) && (queueCap*q.multiplier > q.capacity) {
+					<-q.lock
+					q.queue.bufferDecrease(q.multiplier)
+					q.lock <- struct{}{}
+				}
+			}
+		}
+	}()
+}
+
+// Returns the length of inner channel
+func (q *channelLockQueue) Len() int {
+	<-q.lock
+	defer func() { q.lock <- struct{}{} }()
+	return len(q.queue)
+}
+
+// ---------------------------------- Queue fabric -------------------------
+
+// Queue fabric function
+func NewQueue(kind string, capacity, multiplier int) Queue {
+	enqueue := make(QueueChannel)
+	queue := make(QueueChannel, capacity)
+	dequeue := make(chan QueueChannel)
+	occupancy := make(chan struct{})
+
+	var q Queue
+	if kind == "mutexLockQueue" {
+		mutex := sync.Mutex{}
+		q = &mutexLockQueue{
+			basicQueue{enqueue, queue, dequeue, occupancy, capacity, multiplier},
+			mutex,
+		}
+	} else if kind == "channelLockQueue" {
+		lock := make(chan struct{}, 1)
+		q = &channelLockQueue{
+			basicQueue{enqueue, queue, dequeue, occupancy, capacity, multiplier},
+			lock,
+		}
+	}
+	q.Poll()
+	return q
 }
