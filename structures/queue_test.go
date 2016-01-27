@@ -10,7 +10,6 @@ import (
 const (
 	maxQueueItemsAmount = math.MaxUint8
 	defaultCapacity     = 1 << 10
-	defaultMultiplier   = 1 << 2
 )
 
 //---------------------- Tests ------------------------
@@ -60,23 +59,13 @@ func queueIntPointers(q Queue, t *testing.T) {
 	assert.Equal(t, 0, q.Len())
 }
 
-func TestMutexLockQueueIntValues(t *testing.T) {
-	q := NewQueue("mutexLockQueue", defaultCapacity, defaultMultiplier)
+func TestChannelQueueIntValues(t *testing.T) {
+	q := NewQueue("channelQueue", defaultCapacity)
 	queueIntValues(q, t)
 }
 
-func TestMutexLockQueueIntPointers(t *testing.T) {
-	q := NewQueue("mutexLockQueue", defaultCapacity, defaultMultiplier)
-	queueIntPointers(q, t)
-}
-
-func TestChannelLockQueueIntValues(t *testing.T) {
-	q := NewQueue("channelLockQueue", defaultCapacity, defaultMultiplier)
-	queueIntValues(q, t)
-}
-
-func TestChannelLockQueueIntPointers(t *testing.T) {
-	q := NewQueue("channelLockQueue", defaultCapacity, defaultMultiplier)
+func TestChannelQueueIntPointers(t *testing.T) {
+	q := NewQueue("channelQueue", defaultCapacity)
 	queueIntPointers(q, t)
 }
 
@@ -108,12 +97,7 @@ func benchmarkQueue(q Queue, b *testing.B) {
 	queueBenchmarkElement = r
 }
 
-func BenchmarkMutexQueue(b *testing.B) {
-	q := NewQueue("mutexLockQueue", defaultCapacity, defaultMultiplier)
-	benchmarkQueue(q, b)
-}
-
 func BenchmarkChannelQueue(b *testing.B) {
-	q := NewQueue("channelLockQueue", defaultCapacity, defaultMultiplier)
+	q := NewQueue("channelQueue", defaultCapacity)
 	benchmarkQueue(q, b)
 }

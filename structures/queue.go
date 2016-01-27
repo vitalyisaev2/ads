@@ -3,25 +3,27 @@
 package structures
 
 import (
-	"sync"
+//"sync"
 )
 
 // ----------------------- Queue -------------------------------
+const multiplier = 2
+
 type Queue interface {
-	Poll()
 	Enqueue(interface{})
 	Dequeue() <-chan interface{}
 	Len() int
+	poll()
 }
 
 // ---------------------- Queue Channel -------------------------
 
-// QueueChannel is a resizable channel of interface{} type
-type QueueChannel chan interface{}
+// ResizableChannel is a resizable channel of interface{} type
+type ResizableChannel chan interface{}
 
 // Replace the channel with another one with capacity increased in
 // multiplier times
-func (qc QueueChannel) bufferIncrease(multiplier int) {
+func (qc ResizableChannel) bufferIncrease(multiplier int) {
 	capacity := cap(qc)
 	new_qc := make(chan interface{}, capacity*multiplier)
 	for i := 0; i < len(new_qc); i++ {
@@ -33,7 +35,7 @@ func (qc QueueChannel) bufferIncrease(multiplier int) {
 
 // Replace the channel with another one with capacity decreased in
 // divider times
-func (qc QueueChannel) bufferDecrease(divider int) {
+func (qc ResizableChannel) bufferDecrease(divider int) {
 	capacity := cap(qc)
 	new_qc := make(chan interface{}, int(capacity/divider))
 	for i := 0; i < len(new_qc); i++ {
@@ -47,12 +49,9 @@ func (qc QueueChannel) bufferDecrease(divider int) {
 
 // basicQueue has no Poll() implementation
 type basicQueue struct {
-	enqueue    QueueChannel
-	queue      QueueChannel
-	dequeue    chan QueueChannel
-	occupancy  chan struct{}
-	capacity   int
-	multiplier int
+	enqueue  ResizableChannel
+	dequeue  chan ResizableChannel
+	capacity int
 }
 
 // Pushes item to the end of the Queue
@@ -67,91 +66,16 @@ func (q *basicQueue) Dequeue() <-chan interface{} {
 	return ch
 }
 
-// ---------------------- Queue with mutex-based synchronization -------------------------
+// -------------- Queue with channel-based synchronization (based on ResizableChannel) -------------------------
 
-// Mutex can be used for preserving main channel from corruption
-type mutexLockQueue struct {
+type channelQueue struct {
 	basicQueue
-	mutex sync.Mutex
+	queue     ResizableChannel
+	occupancy chan struct{}
+	lock      chan struct{}
 }
 
-// mutexLockQueue should Poll
-func (q *mutexLockQueue) Poll() {
-
-	// Enqueuer
-	go func() {
-		defer func() {
-			close(q.enqueue)
-			close(q.queue)
-		}()
-		for {
-			select {
-
-			case item := <-q.enqueue:
-
-				// Resize channel if there's no enough space
-				if len(q.queue) == cap(q.queue) {
-					q.mutex.Lock()
-					q.queue.bufferIncrease(q.multiplier)
-					q.mutex.Unlock()
-				}
-
-				// Enqueue item
-				q.queue <- item
-
-				// Tell to the Dequeuer that there's something in channel
-				go func() {
-					q.occupancy <- struct{}{}
-				}()
-
-			}
-		}
-	}()
-
-	// Dequeuer (will block if there's nothing to read)
-	go func() {
-		defer func() {
-			close(q.dequeue)
-		}()
-		for {
-			select {
-			case ch := <-q.dequeue:
-
-				// Wait till channel will contain some data
-				<-q.occupancy
-
-				// Read element and send it to user
-				item := <-q.queue
-				ch <- item
-				close(ch)
-
-				// Decrease main channel capacity in order to free unused memory
-				queueCap, queueLen := cap(q.queue), len(q.queue)
-				if queueLen < int(queueCap/q.multiplier) && (queueCap*q.multiplier > q.capacity) {
-					q.mutex.Lock()
-					q.queue.bufferDecrease(q.multiplier)
-					q.mutex.Unlock()
-				}
-			}
-		}
-	}()
-}
-
-// Returns the length of inner channel
-func (q *mutexLockQueue) Len() int {
-	q.mutex.Lock()
-	defer q.mutex.Unlock()
-	return len(q.queue)
-}
-
-// ---------------------- Queue with channel-based synchronization -------------------------
-
-type channelLockQueue struct {
-	basicQueue
-	lock chan struct{}
-}
-
-func (q *channelLockQueue) Poll() {
+func (q *channelQueue) poll() {
 
 	// First unlock the queue for then enqueuer
 	q.lock <- struct{}{}
@@ -170,7 +94,7 @@ func (q *channelLockQueue) Poll() {
 				// Resize channel if there's no enough space
 				if len(q.queue) == cap(q.queue) {
 					<-q.lock
-					q.queue.bufferIncrease(q.multiplier)
+					q.queue.bufferIncrease(multiplier)
 					q.lock <- struct{}{}
 				}
 
@@ -205,9 +129,9 @@ func (q *channelLockQueue) Poll() {
 
 				// Decrease main channel capacity in order to free unused memory
 				queueCap, queueLen := cap(q.queue), len(q.queue)
-				if queueLen < int(queueCap/q.multiplier) && (queueCap*q.multiplier > q.capacity) {
+				if queueLen < int(queueCap/multiplier) && (queueCap*multiplier > q.capacity) {
 					<-q.lock
-					q.queue.bufferDecrease(q.multiplier)
+					q.queue.bufferDecrease(multiplier)
 					q.lock <- struct{}{}
 				}
 			}
@@ -216,35 +140,35 @@ func (q *channelLockQueue) Poll() {
 }
 
 // Returns the length of inner channel
-func (q *channelLockQueue) Len() int {
+func (q *channelQueue) Len() int {
 	<-q.lock
-	defer func() { q.lock <- struct{}{} }()
+	defer func() {
+		q.lock <- struct{}{}
+	}()
 	return len(q.queue)
 }
 
 // ---------------------------------- Queue fabric -------------------------
 
 // Queue fabric function
-func NewQueue(kind string, capacity, multiplier int) Queue {
-	enqueue := make(QueueChannel)
-	queue := make(QueueChannel, capacity)
-	dequeue := make(chan QueueChannel)
-	occupancy := make(chan struct{})
+func NewQueue(kind string, capacity int) Queue {
+	enqueue := make(ResizableChannel)
+	dequeue := make(chan ResizableChannel)
 
 	var q Queue
-	if kind == "mutexLockQueue" {
-		mutex := sync.Mutex{}
-		q = &mutexLockQueue{
-			basicQueue{enqueue, queue, dequeue, occupancy, capacity, multiplier},
-			mutex,
-		}
-	} else if kind == "channelLockQueue" {
+	if kind == "channelQueue" {
+		queue := make(ResizableChannel, capacity)
+		occupancy := make(chan struct{})
 		lock := make(chan struct{}, 1)
-		q = &channelLockQueue{
-			basicQueue{enqueue, queue, dequeue, occupancy, capacity, multiplier},
+
+		q = &channelQueue{
+			basicQueue{enqueue, dequeue, capacity},
+			queue,
+			occupancy,
 			lock,
 		}
+
+		q.poll()
 	}
-	q.Poll()
 	return q
 }
