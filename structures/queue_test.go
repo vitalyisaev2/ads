@@ -69,6 +69,16 @@ func TestChannelQueueIntPointers(t *testing.T) {
 	queueIntPointers(q, t)
 }
 
+func TestSliceQueueIntValues(t *testing.T) {
+	q := NewQueue("sliceQueue", defaultCapacity)
+	queueIntValues(q, t)
+}
+
+func TestSliceQueueIntPointers(t *testing.T) {
+	q := NewQueue("sliceQueue", defaultCapacity)
+	queueIntPointers(q, t)
+}
+
 // ------------------ Benchmark  -------------------
 
 var queueBenchmarkElement interface{}
@@ -99,5 +109,10 @@ func benchmarkQueue(q Queue, b *testing.B) {
 
 func BenchmarkChannelQueue(b *testing.B) {
 	q := NewQueue("channelQueue", defaultCapacity)
+	benchmarkQueue(q, b)
+}
+
+func BenchmarkSliceQueue(b *testing.B) {
+	q := NewQueue("sliceQueue", defaultCapacity)
 	benchmarkQueue(q, b)
 }
