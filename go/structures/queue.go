@@ -4,7 +4,7 @@ package structures
 
 import (
 //"sync"
-//"fmt"
+//"log"
 )
 
 // ----------------------- Queue -------------------------------
@@ -18,36 +18,11 @@ type Queue interface {
 
 // ---------------------- ResizableChannel  -------------------------
 
-// ResizableChannel is a channel of variable capacity that underlies
-// channelQueue
+// ResizableChannel is a channel of variable capacity that underlies channelQueue
 type ResizableChannel chan interface{}
 
 // Multiplication coeffitient in resize operations
 const multiplier = 2
-
-// Replace the channel with another one with capacity increased in
-// multiplier times
-func (qc ResizableChannel) bufferIncrease(multiplier int) {
-	capacity := cap(qc)
-	new_qc := make(chan interface{}, capacity*multiplier)
-	for i := 0; i < len(new_qc); i++ {
-		item := <-qc
-		new_qc <- item
-	}
-	qc = new_qc
-}
-
-// Replace the channel with another one with capacity decreased in
-// divider times
-func (qc ResizableChannel) bufferDecrease(divider int) {
-	capacity := cap(qc)
-	new_qc := make(chan interface{}, int(capacity/divider))
-	for i := 0; i < len(new_qc); i++ {
-		item := <-qc
-		new_qc <- item
-	}
-	qc = new_qc
-}
 
 // ---------------------- Basic Queue -------------------------
 
@@ -93,15 +68,19 @@ func (q *channelQueue) poll() {
 		for {
 			item := <-q.enqueue
 
+			// Lock channel
+			<-q.lock
+
 			// Resize channel if there's no enough space
 			if len(q.queue) == cap(q.queue) {
-				<-q.lock
-				q.queue.bufferIncrease(multiplier)
-				q.lock <- struct{}{}
+				q.bufferIncrease()
 			}
 
 			// Enqueue item
 			q.queue <- item
+
+			// Release lock
+			q.lock <- struct{}{}
 
 			// Tell to the Dequeuer that there's something to dequeue
 			go func() {
@@ -122,20 +101,49 @@ func (q *channelQueue) poll() {
 			// Wait till channel will contain some data
 			<-q.occupancy
 
+			// Wait for mutex
+			<-q.lock
+
 			// Read element and send it to user
 			item := <-q.queue
 			ch <- item
 			close(ch)
 
 			// Decrease main channel capacity in order to free unused memory
+			// (but not so much)
 			queueCap, queueLen := cap(q.queue), len(q.queue)
-			if queueLen < int(queueCap/multiplier) && (int(queueCap/multiplier) > q.capacity) {
-				<-q.lock
-				q.queue.bufferDecrease(multiplier)
-				q.lock <- struct{}{}
+			queueCapDecreased := int(queueCap / multiplier)
+			if queueLen < queueCapDecreased && queueCapDecreased >= q.capacity {
+				q.bufferDecrease()
 			}
+
+			q.lock <- struct{}{}
 		}
 	}()
+}
+
+// Replace the channel with another one with capacity increased in
+// multiplier times
+func (q *channelQueue) bufferIncrease() {
+	substituteResizableChannel := make(ResizableChannel, cap(q.queue)*multiplier)
+	items := len(q.queue)
+	for i := 0; i < items; i++ {
+		item := <-q.queue
+		substituteResizableChannel <- item
+	}
+	q.queue = substituteResizableChannel
+}
+
+// Replace the channel with another one with capacity decreased in
+// divider times
+func (q *channelQueue) bufferDecrease() {
+	substituteResizableChannel := make(ResizableChannel, int(cap(q.queue)/multiplier))
+	items := len(q.queue)
+	for i := 0; i < items; i++ {
+		item := <-q.queue
+		substituteResizableChannel <- item
+	}
+	q.queue = substituteResizableChannel
 }
 
 // Returns the length of inner channel
@@ -205,8 +213,8 @@ func (q *sliceQueue) poll() {
 			queueCap, queueLen := cap(q.queue), len(q.queue)
 			queueCapDecreased := int(queueCap / multiplier)
 			if queueLen < queueCapDecreased && queueCapDecreased >= q.capacity {
-				queue := make([]interface{}, queueCapDecreased)
-				copy(queue, q.queue[:queueCap])
+				queue := make([]interface{}, queueLen, queueCapDecreased)
+				copy(queue, q.queue[:queueLen])
 				q.queue = queue
 			}
 			q.lock <- struct{}{}
