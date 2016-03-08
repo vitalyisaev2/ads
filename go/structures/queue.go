@@ -3,7 +3,6 @@
 package structures
 
 import (
-//"sync"
 //"log"
 )
 
