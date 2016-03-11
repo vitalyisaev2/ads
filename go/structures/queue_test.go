@@ -7,10 +7,8 @@ import (
 )
 
 const (
-	maxQueueItemsAmount = math.MaxUint8
+	maxQueueItemsAmount = math.MaxUint16
 	defaultCapacity     = 1 << 4
-	//maxQueueItemsAmount = 1 << 3
-	//defaultCapacity     = 1 << 2
 )
 
 //---------------------- Tests ------------------------
@@ -151,22 +149,64 @@ func queueSequentialBenchmark(b *testing.B, q Queue) {
 	queueBenchmarkElement = r
 }
 
-func BenchmarkChannelQueueConcurrent(b *testing.B) {
-	q := NewQueue("channelQueue", defaultCapacity)
+// Concurrent benchmarks
+func BenchmarkChannelQueueConcurrent16(b *testing.B) {
+	q := NewQueue("channelQueue", 16)
 	queueConcurrentBenchmark(b, q)
 }
 
-func BenchmarkSliceQueueConcurrent(b *testing.B) {
-	q := NewQueue("sliceQueue", defaultCapacity)
+func BenchmarkSliceQueueConcurrent16(b *testing.B) {
+	q := NewQueue("sliceQueue", 16)
 	queueConcurrentBenchmark(b, q)
 }
 
-func BenchmarkChannelQueueSequential(b *testing.B) {
-	q := NewQueue("channelQueue", defaultCapacity)
+func BenchmarkChannelQueueConcurrent256(b *testing.B) {
+	q := NewQueue("channelQueue", 256)
+	queueConcurrentBenchmark(b, q)
+}
+
+func BenchmarkSliceQueueConcurrent256(b *testing.B) {
+	q := NewQueue("sliceQueue", 256)
+	queueConcurrentBenchmark(b, q)
+}
+
+func BenchmarkChannelQueueConcurrent4096(b *testing.B) {
+	q := NewQueue("channelQueue", 4096)
+	queueConcurrentBenchmark(b, q)
+}
+
+func BenchmarkSliceQueueConcurrent4096(b *testing.B) {
+	q := NewQueue("sliceQueue", 4096)
+	queueConcurrentBenchmark(b, q)
+}
+
+// Sequential benchmarks
+func BenchmarkChannelQueueSequential16(b *testing.B) {
+	q := NewQueue("channelQueue", 16)
 	queueSequentialBenchmark(b, q)
 }
 
-func BenchmarkSliceQueueSequential(b *testing.B) {
-	q := NewQueue("sliceQueue", defaultCapacity)
+func BenchmarkSliceQueueSequential16(b *testing.B) {
+	q := NewQueue("sliceQueue", 16)
+	queueSequentialBenchmark(b, q)
+}
+
+func BenchmarkChannelQueueSequential256(b *testing.B) {
+	q := NewQueue("channelQueue", 256)
+	queueSequentialBenchmark(b, q)
+}
+
+func BenchmarkSliceQueueSequential256(b *testing.B) {
+	q := NewQueue("sliceQueue", 256)
+	queueSequentialBenchmark(b, q)
+}
+
+func BenchmarkChannelQueueSequential4096(b *testing.B) {
+	q := NewQueue("channelQueue", 4096)
+	queueSequentialBenchmark(b, q)
+}
+
+func BenchmarkSliceQueueSequential4096(b *testing.B) {
+	q := NewQueue("sliceQueue", 4096)
 	queueSequentialBenchmark(b, q)
 }
