@@ -106,7 +106,7 @@ func TestSliceQueue(t *testing.T) {
 	queueConcurrentTest(t, q, "pointers")
 }
 
-// ------------------ Benchmark  -------------------
+// ------------------ Benchmarks -------------------
 
 var queueBenchmarkElement interface{}
 
