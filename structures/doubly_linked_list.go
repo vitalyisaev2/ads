@@ -14,15 +14,20 @@ const (
 )
 
 type DoublyLinkedList interface {
-	//PopBack() interface{}
-	//PopFront() interface{}
 	Get(int) (interface{}, error)
 	Head() interface{}
-	Insert(interface{}, int) error
+	Tail() interface{}
 	Len() int
+
+	Insert(interface{}, int) error
+	Delete(int) (interface{}, error)
 	PushBack(interface{}) error
 	PushFront(interface{}) error
-	Tail() interface{}
+	PopBack() (interface{}, error)
+	PopFront() (interface{}, error)
+
+	Iter() <-chan interface{}
+	RIter() <-chan interface{}
 }
 
 type doublyLinkedList struct {
@@ -37,6 +42,9 @@ type doublyLinkedListNode struct {
 	prev *doublyLinkedListNode
 	next *doublyLinkedListNode
 }
+
+type setter func() error
+type deleter func() (interface{}, error)
 
 //---------------------- Exported methods -------------------------
 
@@ -53,7 +61,7 @@ func (list *doublyLinkedList) Insert(item interface{}, position int) error {
 			list.counter += 1
 			return nil
 		}
-		return list._mutate(insertInitial)
+		return list._set(insertInitial)
 	}
 
 	if position == 0 {
@@ -64,7 +72,7 @@ func (list *doublyLinkedList) Insert(item interface{}, position int) error {
 			list.counter += 1
 			return nil
 		}
-		return list._mutate(insertFront)
+		return list._set(insertFront)
 	}
 
 	if position == list.Len() {
@@ -75,14 +83,79 @@ func (list *doublyLinkedList) Insert(item interface{}, position int) error {
 			list.counter += 1
 			return nil
 		}
-		return list._mutate(insertBack)
+		return list._set(insertBack)
 	}
 
-	if (-1)*list.Len() < position && position < list.Len() {
-		return list.insertIntoPosition(node, position)
+	if 0 < position && position < list.Len() {
+		// Get node that lives on the requested position
+		existingNode, err := list.getNodeByPosition(position)
+		if err != nil {
+			return err
+		}
+
+		// Emplace new node between two old ones
+		insertByPosition := func() error {
+			prevNode := existingNode.prev
+			existingNode.prev = node
+			prevNode.next = node
+			node.next = existingNode
+			node.prev = prevNode
+			list.counter += 1
+			return nil
+		}
+		return list._set(insertByPosition)
 	}
 
 	return errors.New("Invalid insertion position: " + string(position))
+}
+
+func (list *doublyLinkedList) Delete(position int) (interface{}, error) {
+
+	if list.Len() == 0 {
+		return nil, errors.New("Trying to delete node from empty list")
+	}
+
+	if position == 0 {
+		deleteFront := func() (interface{}, error) {
+			item := list.head.item
+			newFront := list.head.next
+			newFront.prev = nil
+			list.counter -= 1
+			return item, nil
+		}
+		return list._delete(deleteFront)
+	}
+
+	if position == list.Len() {
+		deleteBack := func() (interface{}, error) {
+			item := list.tail.item
+			newTail := list.tail.prev
+			newTail.next = nil
+			list.counter -= 1
+			return item, nil
+		}
+		return list._delete(deleteBack)
+	}
+
+	if 0 < position && position < list.Len() {
+		// Get node that lives on the requested position
+		existingNode, err := list.getNodeByPosition(position)
+		if err != nil {
+			return nil, err
+		}
+
+		deleteByPosition := func() (interface{}, error) {
+			prevNode := existingNode.prev
+			nextNode := existingNode.next
+			prevNode.next = nextNode
+			nextNode.prev = prevNode
+			list.counter -= 1
+			return existingNode.item, nil
+		}
+		return list._delete(deleteByPosition)
+	}
+
+	return nil, errors.New("Invalid deletion position: " + string(position))
 }
 
 func (list *doublyLinkedList) PushBack(item interface{}) error {
@@ -91,6 +164,14 @@ func (list *doublyLinkedList) PushBack(item interface{}) error {
 
 func (list *doublyLinkedList) PushFront(item interface{}) error {
 	return list.Insert(item, 0)
+}
+
+func (list *doublyLinkedList) PopBack() (interface{}, error) {
+	return list.Delete(list.Len())
+}
+
+func (list *doublyLinkedList) PopFront() (interface{}, error) {
+	return list.Delete(0)
 }
 
 func (list *doublyLinkedList) Get(position int) (interface{}, error) {
@@ -115,40 +196,46 @@ func (list *doublyLinkedList) Len() int {
 	return list.counter
 }
 
+func (list *doublyLinkedList) Iter() <-chan interface{} {
+	items := make(chan interface{})
+	nodes := list.iterNodes(back)
+	go func() {
+		for node := range nodes {
+			items <- node.item
+		}
+		close(items)
+	}()
+	return items
+}
+
+func (list *doublyLinkedList) RIter() <-chan interface{} {
+	items := make(chan interface{})
+	nodes := list.iterNodes(front)
+	go func() {
+		for node := range nodes {
+			items <- node.item
+		}
+		close(items)
+	}()
+	return items
+}
+
 //---------------------- Private methods -------------------------
 
-type mutator func() error
-
-func (list *doublyLinkedList) _mutate(fn mutator) error {
+func (list *doublyLinkedList) _set(fn setter) error {
 	list.Lock()
 	defer list.Unlock()
 	return fn()
 }
 
-func (list *doublyLinkedList) insertIntoPosition(newNode *doublyLinkedListNode, position int) error {
-
-	// Get node that lives on the requested position
-	existingNode, err := list.getNodeByPosition(position)
-	if err != nil {
-		return err
-	}
-
-	// Emplace new node between two old ones
-	emplaceNode := func() error {
-		prevNode := existingNode.prev
-		existingNode.prev = newNode
-		prevNode.next = newNode
-		newNode.next = existingNode
-		newNode.prev = prevNode
-		list.counter += 1
-		return nil
-	}
-	return list._mutate(emplaceNode)
-
+func (list *doublyLinkedList) _delete(fn deleter) (interface{}, error) {
+	list.Lock()
+	defer list.Unlock()
+	return fn()
 }
 
 func (list *doublyLinkedList) iterNodes(direction int) <-chan *doublyLinkedListNode {
-	ch := make(chan *doublyLinkedListNode)
+	ch := make(chan *doublyLinkedListNode, list.Len())
 
 	// Return empty channel if list has no data
 	if list.Len() == 0 {
@@ -173,6 +260,7 @@ func (list *doublyLinkedList) iterNodes(direction int) <-chan *doublyLinkedListN
 					break
 				}
 			}
+			close(ch)
 		}()
 
 	case front:
@@ -190,6 +278,7 @@ func (list *doublyLinkedList) iterNodes(direction int) <-chan *doublyLinkedListN
 					break
 				}
 			}
+			close(ch)
 		}()
 	}
 	return ch
@@ -213,6 +302,7 @@ func (list *doublyLinkedList) getNodeByPosition(position int) (*doublyLinkedList
 		ch := list.iterNodes(back)
 		for i := 0; i <= position; i++ {
 			node = <-ch
+			//log.Println("Iterated: ", node, i)
 		}
 		return node, nil
 	}
