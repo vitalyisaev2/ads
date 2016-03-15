@@ -1,9 +1,11 @@
 // Skiena 3.2: stacks and queues
+// Three implementations of thread-safe queues backed with a
+// channel of variable capacity, slice and doubly linked list
 
 package structures
 
 import (
-//"log"
+	"log"
 )
 
 // ----------------------- Queue -------------------------------
@@ -15,23 +17,17 @@ type Queue interface {
 	poll()
 }
 
-// ---------------------- ResizableChannel  -------------------------
-
-// ResizableChannel is a channel of variable capacity that underlies channelQueue
-type ResizableChannel chan interface{}
-
 // Multiplication coeffitient in resize operations
 const multiplier = 2
 
 // ---------------------- Basic Queue -------------------------
+type commonChannel chan interface{}
 
 // basicQueue has no Poll() implementation
 type basicQueue struct {
-	enqueue   ResizableChannel
-	dequeue   chan ResizableChannel
+	enqueue   commonChannel
+	dequeue   chan commonChannel
 	occupancy chan struct{}
-	lock      chan struct{}
-	capacity  int
 }
 
 // Pushes item to the end of the Queue
@@ -46,11 +42,13 @@ func (q *basicQueue) Dequeue() <-chan interface{} {
 	return ch
 }
 
-// -------------- Queue with channel-based synchronization with ResizableChannel as a buffer -------------------------
+// -------------- Queue with channel-based synchronization and commonChannel as a buffer -------------------------
 
 type channelQueue struct {
 	basicQueue
-	queue ResizableChannel
+	queue    commonChannel
+	lock     chan struct{}
+	capacity int
 }
 
 func (q *channelQueue) poll() {
@@ -124,25 +122,25 @@ func (q *channelQueue) poll() {
 // Replace the channel with another one with capacity increased in
 // multiplier times
 func (q *channelQueue) bufferIncrease() {
-	substituteResizableChannel := make(ResizableChannel, cap(q.queue)*multiplier)
+	substituteCommonChannel := make(commonChannel, cap(q.queue)*multiplier)
 	items := len(q.queue)
 	for i := 0; i < items; i++ {
 		item := <-q.queue
-		substituteResizableChannel <- item
+		substituteCommonChannel <- item
 	}
-	q.queue = substituteResizableChannel
+	q.queue = substituteCommonChannel
 }
 
 // Replace the channel with another one with capacity decreased in
 // divider times
 func (q *channelQueue) bufferDecrease() {
-	substituteResizableChannel := make(ResizableChannel, int(cap(q.queue)/multiplier))
+	substituteCommonChannel := make(commonChannel, int(cap(q.queue)/multiplier))
 	items := len(q.queue)
 	for i := 0; i < items; i++ {
 		item := <-q.queue
-		substituteResizableChannel <- item
+		substituteCommonChannel <- item
 	}
-	q.queue = substituteResizableChannel
+	q.queue = substituteCommonChannel
 }
 
 // Returns the length of inner channel
@@ -154,10 +152,12 @@ func (q *channelQueue) Len() int {
 	return len(q.queue)
 }
 
-// --------------------------------
+// -------------- Queue with channel-based synchronization and []interface{} as a buffer -------------------------
 type sliceQueue struct {
 	basicQueue
-	queue []interface{}
+	queue    []interface{}
+	lock     chan struct{}
+	capacity int
 }
 
 func (q *sliceQueue) poll() {
@@ -230,26 +230,81 @@ func (q *sliceQueue) Len() int {
 	return len(q.queue)
 }
 
-// ---------------------------------- Queue fabric -------------------------
+// --------------- Queue with no initial capacity backed with a (hopefully) thread-safe DoublyLinkedList ------------------
+type linkedListQueue struct {
+	basicQueue
+	queue DoublyLinkedList
+}
 
-// Queue fabric function
+func (q *linkedListQueue) poll() {
+
+	// Enqueuer
+	go func() {
+		defer func() {
+			close(q.enqueue)
+		}()
+		for {
+			item := <-q.enqueue
+			err := q.queue.PushBack(item)
+			if err != nil {
+				log.Panicln("Error in DoublyLinkedList.PushBack(): ", err)
+			}
+
+			go func() {
+				q.occupancy <- struct{}{}
+			}()
+		}
+	}()
+
+	// Dequeuer
+	go func() {
+		defer func() {
+			close(q.dequeue)
+		}()
+		for {
+			ch := <-q.dequeue
+			<-q.occupancy
+
+			item, err := q.queue.PopFront()
+			if err != nil {
+				log.Panicln("Error in DoublyLinkedList.PopFront(): ", err)
+			}
+
+			ch <- item
+			close(ch)
+		}
+	}()
+}
+
+// Returns the length of inner channel
+func (q *linkedListQueue) Len() int {
+	return q.queue.Len()
+}
+
+// ---------------------------- Queue fabric ----------------------------------------
 func NewQueue(kind string, capacity int) Queue {
-	enqueue := make(ResizableChannel)
-	dequeue := make(chan ResizableChannel)
+	enqueue := make(commonChannel)
+	dequeue := make(chan commonChannel)
 	occupancy := make(chan struct{})
 	lock := make(chan struct{}, 1)
 
 	var q Queue
 	if kind == "channelQueue" {
-		queue := make(ResizableChannel, capacity)
+		queue := make(commonChannel, capacity)
 		q = &channelQueue{
-			basicQueue{enqueue, dequeue, occupancy, lock, capacity},
-			queue,
+			basicQueue{enqueue, dequeue, occupancy},
+			queue, lock, capacity,
 		}
 	} else if kind == "sliceQueue" {
 		queue := make([]interface{}, 0, capacity)
 		q = &sliceQueue{
-			basicQueue{enqueue, dequeue, occupancy, lock, capacity},
+			basicQueue{enqueue, dequeue, occupancy},
+			queue, lock, capacity,
+		}
+	} else if kind == "linkedListQueue" {
+		queue := NewDoublyLinkedList()
+		q = &linkedListQueue{
+			basicQueue{enqueue, dequeue, occupancy},
 			queue,
 		}
 	}

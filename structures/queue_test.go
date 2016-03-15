@@ -106,6 +106,22 @@ func TestSliceQueue(t *testing.T) {
 	queueConcurrentTest(t, q, "pointers")
 }
 
+func TestLinkedListQueue(t *testing.T) {
+	var q Queue
+
+	q = NewQueue("channelQueue", defaultCapacity)
+	queueSequentialTest(t, q, "values")
+
+	q = NewQueue("channelQueue", defaultCapacity)
+	queueSequentialTest(t, q, "pointers")
+
+	q = NewQueue("channelQueue", defaultCapacity)
+	queueConcurrentTest(t, q, "values")
+
+	q = NewQueue("channelQueue", defaultCapacity)
+	queueConcurrentTest(t, q, "pointers")
+}
+
 // ------------------ Benchmarks -------------------
 
 var queueBenchmarkElement interface{}
@@ -180,6 +196,11 @@ func BenchmarkSliceQueueConcurrent4096(b *testing.B) {
 	queueConcurrentBenchmark(b, q)
 }
 
+func BenchmarkLinkedListQueueConcurrent0(b *testing.B) {
+	q := NewQueue("linkedListQueue", 0)
+	queueConcurrentBenchmark(b, q)
+}
+
 // Sequential benchmarks
 func BenchmarkChannelQueueSequential16(b *testing.B) {
 	q := NewQueue("channelQueue", 16)
@@ -208,5 +229,10 @@ func BenchmarkChannelQueueSequential4096(b *testing.B) {
 
 func BenchmarkSliceQueueSequential4096(b *testing.B) {
 	q := NewQueue("sliceQueue", 4096)
+	queueSequentialBenchmark(b, q)
+}
+
+func BenchmarkLinkedListQueueSequentila0(b *testing.B) {
+	q := NewQueue("linkedListQueue", 0)
 	queueSequentialBenchmark(b, q)
 }
