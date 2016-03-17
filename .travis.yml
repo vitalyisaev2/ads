@@ -4,8 +4,15 @@ go:
   - tip
 sudo: false
 before_install:
+  - go get github.com/onsi/ginkgo/ginkgo
   - go get github.com/axw/gocov/gocov
   - go get github.com/mattn/goveralls
-  - if ! go get github.com/golang/tools/cmd/cover; then go get golang.org/x/tools/cmd/cover; fi
+  - go get golang.org/x/tools/cmd/cover
+  - go get github.com/modocache/gover
+  - go get github.com/golang/lint/golint
 script:
-    - $HOME/gopath/bin/goveralls -service=travis-ci ./...
+  - go vet -x ./...
+  - golint ./...
+  - ginkgo -r --randomizeAllSpecs -cover --failOnPending -coverpkg=../... --trace # --race
+  - gover .
+  - goveralls -coverprofile=gover.coverprofile -service=travis-ci
