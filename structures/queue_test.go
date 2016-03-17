@@ -7,8 +7,9 @@ import (
 )
 
 const (
-	maxQueueItemsAmount = math.MaxUint16
-	defaultCapacity     = 1 << 4
+	maxTestQueueItemsAmount      = math.MaxUint8
+	maxBenchmarkQueueItemsAmount = math.MaxUint16
+	defaultCapacity              = 1 << 2
 )
 
 //---------------------- Tests ------------------------
@@ -17,7 +18,7 @@ const (
 func queueConcurrentTest(t *testing.T, q Queue, regime string) {
 	ch := make(chan bool, 2)
 	go func() {
-		for i := 0; i < maxQueueItemsAmount; i++ {
+		for i := 0; i < maxTestQueueItemsAmount; i++ {
 			switch regime {
 			case "values":
 				q.Enqueue(i)
@@ -29,7 +30,7 @@ func queueConcurrentTest(t *testing.T, q Queue, regime string) {
 		ch <- true
 	}()
 	go func() {
-		for i := 0; i < maxQueueItemsAmount; i++ {
+		for i := 0; i < maxTestQueueItemsAmount; i++ {
 			switch regime {
 			case "values":
 				r := (<-q.Dequeue()).(int)
@@ -49,7 +50,7 @@ func queueConcurrentTest(t *testing.T, q Queue, regime string) {
 // Store values, than flush it
 func queueSequentialTest(t *testing.T, q Queue, regime string) {
 
-	for i := 0; i < maxQueueItemsAmount; i++ {
+	for i := 0; i < maxTestQueueItemsAmount; i++ {
 		switch regime {
 		case "values":
 			q.Enqueue(i)
@@ -59,7 +60,7 @@ func queueSequentialTest(t *testing.T, q Queue, regime string) {
 		}
 	}
 
-	for i := 0; i < maxQueueItemsAmount; i++ {
+	for i := 0; i < maxTestQueueItemsAmount; i++ {
 		switch regime {
 		case "values":
 			r := (<-q.Dequeue()).(int)
@@ -133,13 +134,13 @@ func queueConcurrentBenchmark(b *testing.B, q Queue) {
 	for n := 0; n < b.N; n++ {
 		ch := make(chan bool, 2)
 		go func() {
-			for i := 0; i < maxQueueItemsAmount; i++ {
+			for i := 0; i < maxBenchmarkQueueItemsAmount; i++ {
 				q.Enqueue(i)
 			}
 			ch <- true
 		}()
 		go func() {
-			for i := 0; i < maxQueueItemsAmount; i++ {
+			for i := 0; i < maxBenchmarkQueueItemsAmount; i++ {
 				r = <-q.Dequeue()
 			}
 			ch <- true
@@ -155,10 +156,10 @@ func queueSequentialBenchmark(b *testing.B, q Queue) {
 	var r interface{}
 
 	for n := 0; n < b.N; n++ {
-		for i := 0; i < maxQueueItemsAmount; i++ {
+		for i := 0; i < maxBenchmarkQueueItemsAmount; i++ {
 			q.Enqueue(i)
 		}
-		for i := 0; i < maxQueueItemsAmount; i++ {
+		for i := 0; i < maxBenchmarkQueueItemsAmount; i++ {
 			r = <-q.Dequeue()
 		}
 	}

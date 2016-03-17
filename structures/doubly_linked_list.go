@@ -167,6 +167,8 @@ func (list *doublyLinkedList) PopFront() (interface{}, error) {
 }
 
 func (list *doublyLinkedList) Get(position int) (interface{}, error) {
+	list.RLock()
+	defer list.RUnlock()
 	node, err := list.getNodeByPosition(position)
 	if err != nil {
 		return nil, err
@@ -175,10 +177,14 @@ func (list *doublyLinkedList) Get(position int) (interface{}, error) {
 }
 
 func (list *doublyLinkedList) Head() interface{} {
+	list.RLock()
+	defer list.RUnlock()
 	return list.head.item
 }
 
 func (list *doublyLinkedList) Tail() interface{} {
+	list.RLock()
+	defer list.RUnlock()
 	return list.tail.item
 }
 
@@ -234,34 +240,31 @@ func (list *doublyLinkedList) iterNodes(direction int) <-chan *doublyLinkedListN
 	// Otherwise fill channel with a nodes (taking into account the direction)
 	switch direction {
 
+	// Cannot use goroutines for looping over structure due to race conditions
 	case back:
-		go func() {
-			current := list.head
-			for {
-				ch <- current
-				if current.next != nil {
-					current = current.next
-				} else {
-					break
-				}
+		current := list.head
+		for {
+			ch <- current
+			if current.next != nil {
+				current = current.next
+			} else {
+				break
 			}
-			close(ch)
-		}()
+		}
 
 	case front:
-		go func() {
-			current := list.tail
-			for {
-				ch <- current
-				if current.prev != nil {
-					current = current.prev
-				} else {
-					break
-				}
+		current := list.tail
+		for {
+			ch <- current
+			if current.prev != nil {
+				current = current.prev
+			} else {
+				break
 			}
-			close(ch)
-		}()
+		}
 	}
+
+	close(ch)
 	return ch
 }
 
