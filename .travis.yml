@@ -12,6 +12,6 @@ before_install:
 script:
   - go vet -x ./...
   - golint ./...
-  - ginkgo -r --randomizeAllSpecs -cover --failOnPending -coverpkg=../... --trace --race
+  - ginkgo -r --randomizeAllSpecs -cover --failOnPending -coverpkg=./... --trace --race
   - gover .
   - goveralls -coverprofile=gover.coverprofile -service=travis-ci
