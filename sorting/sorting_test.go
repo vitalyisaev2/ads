@@ -85,7 +85,6 @@ func testSort(t *testing.T, SortingFunction sortingFunction) {
 		SortingFunction(input)
 		assert.Equal(t, test.expected, input.toString())
 	}
-
 }
 
 func TestSelectionSort(t *testing.T) {
