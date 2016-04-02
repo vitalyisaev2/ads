@@ -25,3 +25,4 @@ _testmain.go
 
 .ycm_extra_conf.py
 *.coverprofile
+*.pyc
