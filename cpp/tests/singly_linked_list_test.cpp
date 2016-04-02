@@ -16,6 +16,6 @@ TEST_CASE("Singly linked list basic", "[SINGLY_LINKED_LIST]") {
     REQUIRE(list.remove() == 1);
     REQUIRE(list.remove() == 0);
 
-    REQUIRE(list.getHead() == nullptr);
+    REQUIRE(list.getHead() == NULL);
     REQUIRE(list.getLength() == 0);
 }
