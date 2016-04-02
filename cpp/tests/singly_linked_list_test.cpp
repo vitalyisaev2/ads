@@ -1,6 +1,6 @@
 #define CATCH_CONFIG_MAIN
 #include "catch.hpp"
-#include "../singly_linked_list.hpp"
+#include "../structures/singly_linked_list.hpp"
 
 TEST_CASE("Singly linked list basic", "[SINGLY_LINKED_LIST]") {
     SinglyLinkedList<int> list;
@@ -11,4 +11,11 @@ TEST_CASE("Singly linked list basic", "[SINGLY_LINKED_LIST]") {
 
     REQUIRE(list.getHead()->getValue() == 2);
     REQUIRE(list.getLength() == 3);
+
+    REQUIRE(list.remove() == 2);
+    REQUIRE(list.remove() == 1);
+    REQUIRE(list.remove() == 0);
+
+    REQUIRE(list.getHead() == nullptr);
+    REQUIRE(list.getLength() == 0);
 }

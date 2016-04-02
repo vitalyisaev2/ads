@@ -4,10 +4,10 @@ class SinglyLinkedListElement {
     public:
         SinglyLinkedListElement( const T& value ): data(value), next( nullptr ) {}
         ~SinglyLinkedListElement() {}
-        const T& getValue() { return this->data; }
-        SinglyLinkedListElement* getNext() { return this->next; }
-        void setValue(const T& value) { this->data = value; }
-        void setNext(SinglyLinkedListElement* element) { this->next = element; }
+        const T& getValue() { return data; }
+        SinglyLinkedListElement* getNext() { return next; }
+        void setValue(const T& value) { data = value; }
+        void setNext(SinglyLinkedListElement* element) { next = element; }
 
     private:
         T data;
@@ -24,8 +24,8 @@ class SinglyLinkedList {
         ~SinglyLinkedList() {};
         void append(const T& value);
         const T& remove();
-        SinglyLinkedListElement<T>* getHead() { return this->head; };
-        unsigned int getLength() { return this->length; };
+        SinglyLinkedListElement<T>* getHead() { return head; };
+        unsigned int getLength() { return length; };
 
     private:
         SinglyLinkedListElement<T> *head;
@@ -37,11 +37,11 @@ void SinglyLinkedList<T>::append(const T& value) {
 
     SinglyLinkedListElement<T>* element = new SinglyLinkedListElement<T>(value);
 
-    if (this->head == nullptr) {
-        this->head = element;
+    if (head == nullptr) {
+        head = element;
     } else {
-        element->setNext(this->head);
-        this->head = element;
+        element->setNext(head);
+        head = element;
     }
 
     length++;
@@ -50,12 +50,17 @@ void SinglyLinkedList<T>::append(const T& value) {
 
 template <class T>
 const T& SinglyLinkedList<T>::remove() {
-    SinglyLinkedListElement<T> *removedElement = this->head;
-    const T& removedElementValue = removedElement->getValue();
-    this->head = removedElement->getNext();
+    if (head != nullptr) {
+        SinglyLinkedListElement<T> *removedElement = head;
+        const T& removedElementValue = removedElement->getValue();
+        head = removedElement->getNext();
 
-    delete removedElement;
-    length--;
+        delete removedElement;
 
-    return removedElementValue;
+        length--;
+
+        return removedElementValue;
+    } else {
+        throw "Tried to remove element from an empty list";
+    }
 }
