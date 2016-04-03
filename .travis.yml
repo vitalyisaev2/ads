@@ -1,13 +1,16 @@
 sudo: required
 before_install:
+  # C++
   - sudo apt-get update && sudo apt-get install g++ cmake wget
+  # Go
   - wget https://storage.googleapis.com/golang/go1.5.3.linux-amd64.tar.gz 
   - sudo tar -C /usr/local/ -xzf go1.5.3.linux-amd64.tar.gz
   - export PATH=$PATH:/usr/local/go/bin
   - export GOROOT=/usr/local/go
   - export GOPATH=$HOME/go
   - mkdir $HOME/go
+  - go get -u github.com/golang/lint/golint
 script:
   - go vet -x ./go/...
   - cd go && golint ./... && go test --race ./...
-  - cd ../cpp && mkdir build && cd build && cmake .. && make test
+  - cd ../cpp && mkdir build && cd build && cmake .. && make -j4 && make test
