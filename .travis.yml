@@ -5,6 +5,7 @@ before_install:
   - sudo tar -C /usr/local/ -xzf go1.6.linux-amd64.tar.gz
   - export PATH=$PATH:/usr/local/go/bin
   - export GOROOT=$HOME/go
+  - export GOPATH=$HOME/go
   - mkdir $HOME/go
   - go get github.com/onsi/ginkgo/ginkgo
 script:
