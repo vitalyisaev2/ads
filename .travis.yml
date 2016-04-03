@@ -9,7 +9,6 @@ before_install:
   - export GOROOT=/usr/local/go
   - export GOPATH=$HOME/go
   - mkdir $HOME/go
-  - go get -u github.com/golang/lint/golint
 script:
   - go vet -x ./go/...
   - cd go && go test --race ./...
