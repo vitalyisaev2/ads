@@ -1,6 +1,6 @@
 sudo: required
 before_install:
-  - apt-get update && apt-get install g++ cmake wget
+  - sudo apt-get update && sudo apt-get install g++ cmake wget
   - wget https://storage.googleapis.com/golang/go1.6.linux-amd64.tar.gz && \
     sudo tar -C /usr/local/ -xzf go1.6.linux-amd64.tar.gz && \
     rm -f go1.6.linux-amd64.tar.gz
