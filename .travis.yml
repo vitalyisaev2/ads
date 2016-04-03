@@ -2,7 +2,9 @@ sudo: required
 before_install:
   - sudo apt-get update && sudo apt-get install g++ cmake wget
   - wget https://storage.googleapis.com/golang/go1.6.linux-amd64.tar.gz 
-  - sudo tar -C /usr/bin/ -xzf go1.6.linux-amd64.tar.gz
+  - sudo tar -C /usr/local/ -xzf go1.6.linux-amd64.tar.gz
+  - export PATH=$PATH:/usr/local/go/bin
+  - export GOROOT=$HOME/go
   - go get github.com/onsi/ginkgo/ginkgo
 script:
   - go vet -x ./go/...
