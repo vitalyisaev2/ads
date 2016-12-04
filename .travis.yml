@@ -1,15 +1,19 @@
 language: go
+
 go:
   - tip
+
 sudo: false
 
 install:
   - go get github.com/axw/gocov/gocov
   - go get github.com/mattn/goveralls
   - go get github.com/stretchr/testify/assert
-  - go get github.com/alecthomas/gometalinter
-  - gometalinter --install
+  - go get github.com/go-playground/overalls
+  - go install github.com/go-playground/overalls
+  #- go get github.com/alecthomas/gometalinter
+  #- gometalinter --install
 
 script:
-    - go test -race -v -coverprofile=coverage.out -coverpkg=./...
-    - $HOME/gopath/bin/goveralls -coverprofile=coverage.out -service=travis-ci -repotoken $COVERALLS_TOKEN || true
+    - overalls -project=github.com/vitalyisaev2/skiena -covermode=count -- -v #-race
+    - $HOME/gopath/bin/goveralls -coverprofile=coverage.out -service=travis-ci -repotoken $COVERALLS_TOKEN
