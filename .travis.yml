@@ -16,4 +16,4 @@ install:
 
 script:
     - overalls -project=github.com/vitalyisaev2/skiena -covermode=count -- -v #-race
-    - $HOME/gopath/bin/goveralls -coverprofile=coverage.out -service=travis-ci -repotoken $COVERALLS_TOKEN
+    - $HOME/gopath/bin/goveralls -coverprofile=overalls.coverprofile -service=travis-ci -repotoken $COVERALLS_TOKEN
