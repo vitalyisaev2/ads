@@ -1,8 +1,9 @@
 package structures
 
 import (
-	//"fmt"
+	"math/rand"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -19,24 +20,46 @@ func (thisItem *binaryTreeString) Equal(thatItem interface{}) bool {
 	return thisItem.value == thatItem.(*binaryTreeString).value
 }
 
-func TestBinaryTree(t *testing.T) {
+func newBinaryTreeString() []binaryTreeString {
+	// Create data and shuffle it
 	payload := []binaryTreeString{
 		binaryTreeString{"a"},
 		binaryTreeString{"b"},
 		binaryTreeString{"c"},
+		binaryTreeString{"d"},
+		binaryTreeString{"e"},
 	}
+	rand.Seed(time.Now().UnixNano())
+	for i := range payload {
+		j := rand.Intn(i + 1)
+		payload[i], payload[j] = payload[j], payload[i]
+	}
+	return payload
+}
+
+func TestBinaryTree(t *testing.T) {
+	var (
+		err     error
+		tree    BinarySearchTree
+		payload []binaryTreeString
+	)
 
 	// Create and populate tree
-	tree := NewBinarySearchTree()
+	tree = NewBinarySearchTree()
+	payload = newBinaryTreeString()
 	for i := range payload {
-		tree.Insert(&payload[i])
+		err = tree.Insert(&payload[i])
+		assert.Nil(t, err)
 	}
-	// Print tree
+
 	//fmt.Println(tree)
 
 	// Basic checks
-	assert.Equal(t, tree.Len(), 3)
-	assert.Equal(t, "a", tree.Root().(*binaryTreeString).value)
+	assert.Equal(t, tree.Len(), 5)
 	assert.Equal(t, "a", tree.Min().(*binaryTreeString).value)
-	assert.Equal(t, "c", tree.Max().(*binaryTreeString).value)
+	assert.Equal(t, "e", tree.Max().(*binaryTreeString).value)
+
+	// True negative
+	err = tree.Insert(&binaryTreeString{"a"})
+	assert.Error(t, err)
 }

@@ -19,7 +19,8 @@ type BinarySearchTreeItem interface {
 // BinarySearchTree is a simple implementation of a binary search tree
 type BinarySearchTree interface {
 	Search(BinarySearchTreeItem) BinarySearchTreeItem
-	Insert(BinarySearchTreeItem)
+	Insert(BinarySearchTreeItem) error
+	//Remove() error
 	Min() BinarySearchTreeItem
 	Max() BinarySearchTreeItem
 	Root() BinarySearchTreeItem
@@ -33,11 +34,14 @@ type binarySearchTreeImpl struct {
 	size int
 }
 
-func (tree *binarySearchTreeImpl) Insert(newItem BinarySearchTreeItem) {
+func (tree *binarySearchTreeImpl) Insert(newItem BinarySearchTreeItem) error {
 	tree.Lock()
 	defer tree.Unlock()
-	tree.root.insert(newItem)
-	tree.size++
+	err := tree.root.insert(newItem)
+	if err == nil {
+		tree.size++
+	}
+	return err
 }
 
 func (tree *binarySearchTreeImpl) Search(soughtItem BinarySearchTreeItem) BinarySearchTreeItem {
@@ -111,14 +115,14 @@ func (node *binarySearchTreeNodeImpl) Parent() BinarySearchTreeNode { return nod
 func (node *binarySearchTreeNodeImpl) Left() BinarySearchTreeNode   { return node.left }
 func (node *binarySearchTreeNodeImpl) Right() BinarySearchTreeNode  { return node.right }
 
-func (node *binarySearchTreeNodeImpl) insert(newItem BinarySearchTreeItem) {
+func (node *binarySearchTreeNodeImpl) insert(newItem BinarySearchTreeItem) error {
 	if node.item == nil {
 		node.item = newItem
-		return
+		return nil
 	}
 
 	if node.item.Equal(newItem) {
-		return
+		return fmt.Errorf("Item %v already exists", newItem)
 	}
 
 	if node.item.Less(newItem) {
@@ -128,10 +132,9 @@ func (node *binarySearchTreeNodeImpl) insert(newItem BinarySearchTreeItem) {
 				parent: node,
 			}
 			node.right = newNode
-			return
+			return nil
 		}
-		node.right.insert(newItem)
-		return
+		return node.right.insert(newItem)
 	}
 
 	if node.left == nil {
@@ -140,9 +143,9 @@ func (node *binarySearchTreeNodeImpl) insert(newItem BinarySearchTreeItem) {
 			parent: node,
 		}
 		node.left = newNode
-		return
+		return nil
 	}
-	node.left.insert(newItem)
+	return node.left.insert(newItem)
 }
 
 func (node *binarySearchTreeNodeImpl) search(soughtItem BinarySearchTreeItem) BinarySearchTreeItem {
