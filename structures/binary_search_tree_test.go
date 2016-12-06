@@ -1,7 +1,7 @@
 package structures
 
 import (
-	"fmt"
+	//"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -26,13 +26,17 @@ func TestBinaryTree(t *testing.T) {
 		binaryTreeString{"c"},
 	}
 
+	// Create and populate tree
 	tree := NewBinarySearchTree()
 	for i := range payload {
 		tree.Insert(&payload[i])
 	}
+	// Print tree
+	//fmt.Println(tree)
+
+	// Basic checks
 	assert.Equal(t, tree.Len(), 3)
-	fmt.Println(tree)
-	fmt.Println(tree.Items())
-	assert.True(t, tree.Min().Equal(&binaryTreeString{"a"}))
-	assert.True(t, tree.Root().Equal(&binaryTreeString{"a"}))
+	assert.Equal(t, "a", tree.Root().(*binaryTreeString).value)
+	assert.Equal(t, "a", tree.Min().(*binaryTreeString).value)
+	assert.Equal(t, "c", tree.Max().(*binaryTreeString).value)
 }

@@ -3,32 +3,33 @@
 
 package structures
 
-import
-//"fmt"
-
-"sync"
+import (
+	"fmt"
+	"strings"
+	"sync"
+)
 
 // BinarySearchTreeItem describes interfaces for the BinarySearchTree payload
 type BinarySearchTreeItem interface {
 	Less(interface{}) bool
 	Equal(interface{}) bool
+	//Value() interface{}
 }
 
 // BinarySearchTree is a simple implementation of a binary search tree
 type BinarySearchTree interface {
-	//fmt.Stringer
 	Search(BinarySearchTreeItem) BinarySearchTreeItem
 	Insert(BinarySearchTreeItem)
 	Min() BinarySearchTreeItem
-	//Max() BinarySearchTreeItem
-	Items() []BinarySearchTreeItem
+	Max() BinarySearchTreeItem
 	Root() BinarySearchTreeItem
 	Len() int
+	Items() []BinarySearchTreeNode
 }
 
 type binarySearchTreeImpl struct {
 	sync.RWMutex
-	root *binarySearchTreeNode
+	root *binarySearchTreeNodeImpl
 	size int
 }
 
@@ -51,22 +52,22 @@ func (tree *binarySearchTreeImpl) Min() BinarySearchTreeItem {
 	return tree.root.min()
 }
 
+func (tree *binarySearchTreeImpl) Max() BinarySearchTreeItem {
+	tree.RLock()
+	defer tree.RUnlock()
+	return tree.root.max()
+}
+
 func (tree *binarySearchTreeImpl) Len() int {
 	tree.RLock()
 	defer tree.RUnlock()
 	return tree.size
 }
 
-//func (tree *binarySearchTreeImpl) String() string {
-//tree.RLock()
-//defer tree.RUnlock()
-//return fmt.Sprintf("Tree: total items %d", tree.size)
-//}
-
-func (tree *binarySearchTreeImpl) Items() []BinarySearchTreeItem {
+func (tree *binarySearchTreeImpl) Items() []BinarySearchTreeNode {
 	tree.RLock()
 	defer tree.RUnlock()
-	items := make([]BinarySearchTreeItem, 0, tree.size)
+	items := make([]BinarySearchTreeNode, 0, tree.size)
 	tree.root.traverseSlice(&items)
 	return items
 }
@@ -77,16 +78,40 @@ func (tree *binarySearchTreeImpl) Root() BinarySearchTreeItem {
 	return tree.root.item
 }
 
-type binarySearchTreeNode struct {
-	item   BinarySearchTreeItem
-	parent *binarySearchTreeNode
-	left   *binarySearchTreeNode
-	right  *binarySearchTreeNode
+func (tree *binarySearchTreeImpl) String() string {
+	tree.RLock()
+	defer tree.RUnlock()
+	items := tree.Items()
+	itemsString := make([]string, 0, cap(items))
+	for i := range items {
+		itemsString = append(itemsString, items[i].String())
+	}
+	return strings.Join(itemsString, "\n")
 }
 
-func (node *binarySearchTreeNode) Item() BinarySearchTreeItem { return node.item }
+// BinarySearchTreeNode contains a payload and also holds links to the
+// parents and children
+type BinarySearchTreeNode interface {
+	fmt.Stringer
+	Item() BinarySearchTreeItem
+	Parent() BinarySearchTreeNode
+	Left() BinarySearchTreeNode
+	Right() BinarySearchTreeNode
+}
 
-func (node *binarySearchTreeNode) insert(newItem BinarySearchTreeItem) {
+type binarySearchTreeNodeImpl struct {
+	item   BinarySearchTreeItem
+	parent *binarySearchTreeNodeImpl
+	left   *binarySearchTreeNodeImpl
+	right  *binarySearchTreeNodeImpl
+}
+
+func (node *binarySearchTreeNodeImpl) Item() BinarySearchTreeItem   { return node.item }
+func (node *binarySearchTreeNodeImpl) Parent() BinarySearchTreeNode { return node.parent }
+func (node *binarySearchTreeNodeImpl) Left() BinarySearchTreeNode   { return node.left }
+func (node *binarySearchTreeNodeImpl) Right() BinarySearchTreeNode  { return node.right }
+
+func (node *binarySearchTreeNodeImpl) insert(newItem BinarySearchTreeItem) {
 	if node.item == nil {
 		node.item = newItem
 		return
@@ -98,7 +123,7 @@ func (node *binarySearchTreeNode) insert(newItem BinarySearchTreeItem) {
 
 	if node.item.Less(newItem) {
 		if node.right == nil {
-			newNode := &binarySearchTreeNode{
+			newNode := &binarySearchTreeNodeImpl{
 				item:   newItem,
 				parent: node,
 			}
@@ -106,10 +131,11 @@ func (node *binarySearchTreeNode) insert(newItem BinarySearchTreeItem) {
 			return
 		}
 		node.right.insert(newItem)
+		return
 	}
 
 	if node.left == nil {
-		newNode := &binarySearchTreeNode{
+		newNode := &binarySearchTreeNodeImpl{
 			item:   newItem,
 			parent: node,
 		}
@@ -119,7 +145,7 @@ func (node *binarySearchTreeNode) insert(newItem BinarySearchTreeItem) {
 	node.left.insert(newItem)
 }
 
-func (node *binarySearchTreeNode) search(soughtItem BinarySearchTreeItem) BinarySearchTreeItem {
+func (node *binarySearchTreeNodeImpl) search(soughtItem BinarySearchTreeItem) BinarySearchTreeItem {
 	if node.item == nil {
 		return nil
 	}
@@ -141,7 +167,7 @@ func (node *binarySearchTreeNode) search(soughtItem BinarySearchTreeItem) Binary
 	return nil
 }
 
-func (node *binarySearchTreeNode) min() BinarySearchTreeItem {
+func (node *binarySearchTreeNodeImpl) min() BinarySearchTreeItem {
 	minNode := node
 	for minNode.left != nil {
 		minNode = minNode.left
@@ -149,17 +175,60 @@ func (node *binarySearchTreeNode) min() BinarySearchTreeItem {
 	return minNode.item
 }
 
-func (node *binarySearchTreeNode) traverseSlice(items *[]BinarySearchTreeItem) {
-	if node.item != nil {
-		node.left.traverseSlice(items)
-		*items = append(*items, node.item)
-		node.right.traverseSlice(items)
+func (node *binarySearchTreeNodeImpl) max() BinarySearchTreeItem {
+	maxNode := node
+	for maxNode.right != nil {
+		maxNode = maxNode.right
 	}
+	return maxNode.item
+}
+
+func (node *binarySearchTreeNodeImpl) traverseSlice(items *[]BinarySearchTreeNode) {
+	if node.item != nil {
+		if node.left != nil {
+			node.left.traverseSlice(items)
+		}
+		*items = append(*items, node)
+		if node.right != nil {
+			node.right.traverseSlice(items)
+		}
+	}
+}
+
+func (node *binarySearchTreeNodeImpl) String() string {
+	var (
+		item   string
+		parent string
+		left   string
+		right  string
+	)
+	item = fmt.Sprintf("%v", node.item)
+	switch node.parent {
+	case nil:
+		parent = "nil"
+	default:
+		parent = fmt.Sprintf("%v", node.parent.item)
+	}
+	switch node.left {
+	case nil:
+		left = "nil"
+	default:
+		left = fmt.Sprintf("%v", node.left.item)
+	}
+	switch node.right {
+	case nil:
+		right = "nil"
+	default:
+		right = fmt.Sprintf("%v", node.right.item)
+	}
+	return fmt.Sprintf(
+		"item=%s(%p) parent=%s left=%s right=%s",
+		item, node, parent, left, right)
 }
 
 // NewBinarySearchTree returns empty binary search tree
 func NewBinarySearchTree() BinarySearchTree {
-	root := &binarySearchTreeNode{}
+	root := &binarySearchTreeNodeImpl{}
 	tree := &binarySearchTreeImpl{root: root, size: 0}
 	return tree
 }
