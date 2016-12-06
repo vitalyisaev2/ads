@@ -18,12 +18,12 @@ type BinarySearchTreeItem interface {
 
 // BinarySearchTree is a simple implementation of a binary search tree
 type BinarySearchTree interface {
-	Search(BinarySearchTreeItem) BinarySearchTreeItem
+	Search(BinarySearchTreeItem) BinarySearchTreeNode
 	Insert(BinarySearchTreeItem) error
-	//Remove() error
-	Min() BinarySearchTreeItem
-	Max() BinarySearchTreeItem
-	Root() BinarySearchTreeItem
+	Remove(BinarySearchTreeItem) error
+	Min() BinarySearchTreeNode
+	Max() BinarySearchTreeNode
+	Root() BinarySearchTreeNode
 	Len() int
 	Items() []BinarySearchTreeNode
 }
@@ -44,19 +44,34 @@ func (tree *binarySearchTreeImpl) Insert(newItem BinarySearchTreeItem) error {
 	return err
 }
 
-func (tree *binarySearchTreeImpl) Search(soughtItem BinarySearchTreeItem) BinarySearchTreeItem {
+func (tree *binarySearchTreeImpl) Remove(removingItem BinarySearchTreeItem) error {
+	tree.Lock()
+	defer tree.Unlock()
+	removingNode := tree.root.search(removingItem)
+	if removingNode == nil {
+		return fmt.Errorf("Removing item %v does not exist", removingNode)
+	}
+	err := removingNode.remove()
+	if err != nil {
+		return err
+	}
+	tree.size--
+	return nil
+}
+
+func (tree *binarySearchTreeImpl) Search(soughtItem BinarySearchTreeItem) BinarySearchTreeNode {
 	tree.RLock()
 	defer tree.RUnlock()
 	return tree.root.search(soughtItem)
 }
 
-func (tree *binarySearchTreeImpl) Min() BinarySearchTreeItem {
+func (tree *binarySearchTreeImpl) Min() BinarySearchTreeNode {
 	tree.RLock()
 	defer tree.RUnlock()
 	return tree.root.min()
 }
 
-func (tree *binarySearchTreeImpl) Max() BinarySearchTreeItem {
+func (tree *binarySearchTreeImpl) Max() BinarySearchTreeNode {
 	tree.RLock()
 	defer tree.RUnlock()
 	return tree.root.max()
@@ -76,10 +91,10 @@ func (tree *binarySearchTreeImpl) Items() []BinarySearchTreeNode {
 	return items
 }
 
-func (tree *binarySearchTreeImpl) Root() BinarySearchTreeItem {
+func (tree *binarySearchTreeImpl) Root() BinarySearchTreeNode {
 	tree.RLock()
 	defer tree.RUnlock()
-	return tree.root.item
+	return tree.root
 }
 
 func (tree *binarySearchTreeImpl) String() string {
@@ -98,9 +113,10 @@ func (tree *binarySearchTreeImpl) String() string {
 type BinarySearchTreeNode interface {
 	fmt.Stringer
 	Item() BinarySearchTreeItem
-	Parent() BinarySearchTreeNode
-	Left() BinarySearchTreeNode
-	Right() BinarySearchTreeNode
+	//Parent() BinarySearchTreeNode
+	//Left() BinarySearchTreeNode
+	//Right() BinarySearchTreeNode
+	remove() error
 }
 
 type binarySearchTreeNodeImpl struct {
@@ -110,10 +126,11 @@ type binarySearchTreeNodeImpl struct {
 	right  *binarySearchTreeNodeImpl
 }
 
-func (node *binarySearchTreeNodeImpl) Item() BinarySearchTreeItem   { return node.item }
-func (node *binarySearchTreeNodeImpl) Parent() BinarySearchTreeNode { return node.parent }
-func (node *binarySearchTreeNodeImpl) Left() BinarySearchTreeNode   { return node.left }
-func (node *binarySearchTreeNodeImpl) Right() BinarySearchTreeNode  { return node.right }
+func (node *binarySearchTreeNodeImpl) Item() BinarySearchTreeItem { return node.item }
+
+//func (node *binarySearchTreeNodeImpl) Parent() BinarySearchTreeNode { return node.parent }
+//func (node *binarySearchTreeNodeImpl) Left() BinarySearchTreeNode   { return node.left }
+//func (node *binarySearchTreeNodeImpl) Right() BinarySearchTreeNode  { return node.right }
 
 func (node *binarySearchTreeNodeImpl) insert(newItem BinarySearchTreeItem) error {
 	if node.item == nil {
@@ -148,13 +165,70 @@ func (node *binarySearchTreeNodeImpl) insert(newItem BinarySearchTreeItem) error
 	return node.left.insert(newItem)
 }
 
-func (node *binarySearchTreeNodeImpl) search(soughtItem BinarySearchTreeItem) BinarySearchTreeItem {
+func (node *binarySearchTreeNodeImpl) remove() error {
+	var err error
+	parent := node.parent
+
+	// Remove leaf with no children
+	if node.right == nil && node.left == nil {
+		return node.eraseParentLink()
+	}
+
+	// Replace leaf with two children
+	if node.right != nil && node.left != nil {
+
+		// Search minimal element in right subtree and reset refering nodes
+		newNode := node.right.min()
+		err = newNode.eraseParentLink()
+		if err != nil {
+			return err
+		}
+		newNode.left = node.left
+		newNode.right = node.right
+
+		// Delete links explicitly
+		node.left = nil
+		node.right = nil
+		node.parent = nil
+
+		// Make parent refer to newNode
+		if parent.right == node {
+			parent.right = newNode
+			return nil
+		} else if parent.left == node {
+			parent.left = newNode
+			return nil
+		}
+		return fmt.Errorf(
+			"Implementation error: parent node %v doesn't refer to the removing node %v",
+			parent, node)
+	}
+
+	// Replace leaf with a single children
+	return nil
+}
+
+func (node *binarySearchTreeNodeImpl) eraseParentLink() error {
+	parent := node.parent
+	if parent.right == node {
+		parent.right = nil
+		return nil
+	} else if parent.left == node {
+		parent.left = nil
+		return nil
+	}
+	return fmt.Errorf(
+		"Implementation error: parent node %v doesn't refer to the removing node %v",
+		parent, node)
+}
+
+func (node *binarySearchTreeNodeImpl) search(soughtItem BinarySearchTreeItem) *binarySearchTreeNodeImpl {
 	if node.item == nil {
 		return nil
 	}
 
 	if node.item.Equal(soughtItem) {
-		return node.item
+		return node
 	}
 
 	if node.item.Less(soughtItem) {
@@ -170,20 +244,20 @@ func (node *binarySearchTreeNodeImpl) search(soughtItem BinarySearchTreeItem) Bi
 	return nil
 }
 
-func (node *binarySearchTreeNodeImpl) min() BinarySearchTreeItem {
+func (node *binarySearchTreeNodeImpl) min() *binarySearchTreeNodeImpl {
 	minNode := node
 	for minNode.left != nil {
 		minNode = minNode.left
 	}
-	return minNode.item
+	return minNode
 }
 
-func (node *binarySearchTreeNodeImpl) max() BinarySearchTreeItem {
+func (node *binarySearchTreeNodeImpl) max() *binarySearchTreeNodeImpl {
 	maxNode := node
 	for maxNode.right != nil {
 		maxNode = maxNode.right
 	}
-	return maxNode.item
+	return maxNode
 }
 
 func (node *binarySearchTreeNodeImpl) traverseSlice(items *[]BinarySearchTreeNode) {

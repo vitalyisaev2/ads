@@ -1,38 +1,35 @@
 package structures
 
 import (
-	"math/rand"
+	"fmt"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 )
 
-type binaryTreeString struct {
-	value string
+type binaryTreeInt struct {
+	value int
 }
 
-func (thisItem *binaryTreeString) Less(thatItem interface{}) bool {
-	return thisItem.value < thatItem.(*binaryTreeString).value
+func (thisItem *binaryTreeInt) Less(thatItem interface{}) bool {
+	return thisItem.value < thatItem.(*binaryTreeInt).value
 }
 
-func (thisItem *binaryTreeString) Equal(thatItem interface{}) bool {
-	return thisItem.value == thatItem.(*binaryTreeString).value
+func (thisItem *binaryTreeInt) Equal(thatItem interface{}) bool {
+	return thisItem.value == thatItem.(*binaryTreeInt).value
 }
 
-func newBinaryTreeString() []binaryTreeString {
+func newBinaryTreeIntSlice() []binaryTreeInt {
 	// Create data and shuffle it
-	payload := []binaryTreeString{
-		binaryTreeString{"a"},
-		binaryTreeString{"b"},
-		binaryTreeString{"c"},
-		binaryTreeString{"d"},
-		binaryTreeString{"e"},
-	}
-	rand.Seed(time.Now().UnixNano())
-	for i := range payload {
-		j := rand.Intn(i + 1)
-		payload[i], payload[j] = payload[j], payload[i]
+	payload := []binaryTreeInt{
+		binaryTreeInt{2},
+		binaryTreeInt{1},
+		binaryTreeInt{7},
+		binaryTreeInt{4},
+		binaryTreeInt{8},
+		binaryTreeInt{3},
+		binaryTreeInt{6},
+		binaryTreeInt{5},
 	}
 	return payload
 }
@@ -41,25 +38,34 @@ func TestBinaryTree(t *testing.T) {
 	var (
 		err     error
 		tree    BinarySearchTree
-		payload []binaryTreeString
+		node    BinarySearchTreeNode
+		payload []binaryTreeInt
 	)
 
 	// Create and populate tree
 	tree = NewBinarySearchTree()
-	payload = newBinaryTreeString()
+	payload = newBinaryTreeIntSlice()
 	for i := range payload {
 		err = tree.Insert(&payload[i])
 		assert.Nil(t, err)
 	}
 
-	//fmt.Println(tree)
+	fmt.Println(tree)
 
 	// Basic checks
-	assert.Equal(t, tree.Len(), 5)
-	assert.Equal(t, "a", tree.Min().(*binaryTreeString).value)
-	assert.Equal(t, "e", tree.Max().(*binaryTreeString).value)
+	assert.Equal(t, tree.Len(), 8)
+	assert.Equal(t, 2, tree.Root().Item().(*binaryTreeInt).value)
+	assert.Equal(t, 1, tree.Min().Item().(*binaryTreeInt).value)
+	assert.Equal(t, 8, tree.Max().Item().(*binaryTreeInt).value)
 
-	// True negative
-	err = tree.Insert(&binaryTreeString{"a"})
+	// Insert again --> error
+	err = tree.Insert(&binaryTreeInt{1})
 	assert.Error(t, err)
+
+	// Search nodes
+	node = tree.Search(&binaryTreeInt{1})
+	assert.NotNil(t, node)
+	node = tree.Search(&binaryTreeInt{10})
+	assert.Nil(t, node)
+
 }
