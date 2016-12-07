@@ -13,7 +13,6 @@ import (
 type BinarySearchTreeItem interface {
 	Less(interface{}) bool
 	Equal(interface{}) bool
-	//Value() interface{}
 }
 
 // BinarySearchTree is a simple implementation of a binary search tree
@@ -113,9 +112,6 @@ func (tree *binarySearchTreeImpl) String() string {
 type BinarySearchTreeNode interface {
 	fmt.Stringer
 	Item() BinarySearchTreeItem
-	//Parent() BinarySearchTreeNode
-	//Left() BinarySearchTreeNode
-	//Right() BinarySearchTreeNode
 	remove() error
 }
 
@@ -127,10 +123,6 @@ type binarySearchTreeNodeImpl struct {
 }
 
 func (node *binarySearchTreeNodeImpl) Item() BinarySearchTreeItem { return node.item }
-
-//func (node *binarySearchTreeNodeImpl) Parent() BinarySearchTreeNode { return node.parent }
-//func (node *binarySearchTreeNodeImpl) Left() BinarySearchTreeNode   { return node.left }
-//func (node *binarySearchTreeNodeImpl) Right() BinarySearchTreeNode  { return node.right }
 
 func (node *binarySearchTreeNodeImpl) insert(newItem BinarySearchTreeItem) error {
 	if node.item == nil {
@@ -185,26 +177,32 @@ func (node *binarySearchTreeNodeImpl) remove() error {
 		}
 		newNode.left = node.left
 		newNode.right = node.right
-
-		// Delete links explicitly
-		node.left = nil
-		node.right = nil
-		node.parent = nil
+		node.dropReferences()
 
 		// Make parent refer to newNode
 		if parent.right == node {
 			parent.right = newNode
 			return nil
-		} else if parent.left == node {
-			parent.left = newNode
-			return nil
 		}
-		return fmt.Errorf(
-			"Implementation error: parent node %v doesn't refer to the removing node %v",
-			parent, node)
+		parent.left = newNode
+		return nil
 	}
 
 	// Replace leaf with a single children
+	if node.right != nil {
+		node.right.parent = node.parent
+		err = node.resetParentLink(node.right)
+		if err != nil {
+			return err
+		}
+	} else {
+		node.left.parent = node.parent
+		err = node.resetParentLink(node.left)
+		if err != nil {
+			return err
+		}
+	}
+	node.dropReferences()
 	return nil
 }
 
@@ -213,13 +211,25 @@ func (node *binarySearchTreeNodeImpl) eraseParentLink() error {
 	if parent.right == node {
 		parent.right = nil
 		return nil
-	} else if parent.left == node {
-		parent.left = nil
+	}
+	parent.left = nil
+	return nil
+}
+
+func (node *binarySearchTreeNodeImpl) resetParentLink(child *binarySearchTreeNodeImpl) error {
+	parent := node.parent
+	if parent.right == node {
+		parent.right = child
 		return nil
 	}
-	return fmt.Errorf(
-		"Implementation error: parent node %v doesn't refer to the removing node %v",
-		parent, node)
+	parent.left = child
+	return nil
+}
+
+func (node *binarySearchTreeNodeImpl) dropReferences() {
+	node.left = nil
+	node.right = nil
+	node.parent = nil
 }
 
 func (node *binarySearchTreeNodeImpl) search(soughtItem BinarySearchTreeItem) *binarySearchTreeNodeImpl {
