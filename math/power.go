@@ -1,4 +1,4 @@
-package algorithms
+package math
 
 // RaiseNumberToNaturalPower returns a^n for a given a, n integers
 // for a O(log N) time.
