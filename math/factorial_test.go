@@ -1,6 +1,7 @@
 package math
 
 import (
+	"math/big"
 	"runtime"
 	"testing"
 
@@ -8,15 +9,16 @@ import (
 )
 
 func Test_NaiveFactorial(t *testing.T) {
-	assert.Equal(t, uint64(1), NaiveFactorial(0))
-	assert.Equal(t, uint64(1), NaiveFactorial(1))
-	assert.Equal(t, uint64(2), NaiveFactorial(2))
-	assert.Equal(t, uint64(6), NaiveFactorial(3))
-	assert.Equal(t, uint64(3628800), NaiveFactorial(10))
+	assert.Zero(t, big.NewInt(1).Cmp(NaiveFactorial(big.NewInt(0))))
+	assert.Zero(t, big.NewInt(1).Cmp(NaiveFactorial(big.NewInt(1))))
+	assert.Zero(t, big.NewInt(2).Cmp(NaiveFactorial(big.NewInt(2))))
+	assert.Zero(t, big.NewInt(6).Cmp(NaiveFactorial(big.NewInt(3))))
+	assert.Zero(t, big.NewInt(3628800).Cmp(NaiveFactorial(big.NewInt(10))))
 }
 
 func Test_NaiveFactorialParallel(t *testing.T) {
-	assert.Equal(t, uint64(1), NaiveFactorialParallel(0, runtime.NumCPU()))
-	assert.Equal(t, uint64(3628800), NaiveFactorialParallel(10, runtime.NumCPU()))
-	assert.Equal(t, uint64(6402373705728000), NaiveFactorialParallel(18, runtime.NumCPU()))
+	cpu := runtime.NumCPU()
+	assert.Zero(t, big.NewInt(1).Cmp(NaiveFactorialParallel(big.NewInt(0), cpu)))
+	assert.Zero(t, big.NewInt(3628800).Cmp(NaiveFactorialParallel(big.NewInt(10), cpu)))
+	assert.Zero(t, big.NewInt(6402373705728000).Cmp(NaiveFactorialParallel(big.NewInt(18), cpu)))
 }
