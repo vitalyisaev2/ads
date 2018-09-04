@@ -33,3 +33,5 @@ _testmain.go
 # Cmake files etc.
 build
 *.out
+
+.idea
