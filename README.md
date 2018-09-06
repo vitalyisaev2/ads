@@ -1,4 +1,4 @@
-![Travis CI status](https://travis-ci.org/vitalyisaev2/skiena.svg)
-[![Coverage Status](https://coveralls.io/repos/github/vitalyisaev2/skiena/badge.svg)](https://coveralls.io/github/vitalyisaev2/skiena)
+![Travis CI status](https://travis-ci.org/vitalyisaev2/ads-go.svg)
+[![codecov](https://codecov.io/gh/vitalyisaev2/ads-go/branch/master/graph/badge.svg)](https://codecov.io/gh/vitalyisaev2/ads-go)
 
 Studying various algorithms and data structures.
