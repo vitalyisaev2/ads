@@ -42,7 +42,7 @@ func (g *defaultDirectedGraph) AddEdge(edge Edge, from, to Node) error {
 	edges, exists := neighbours[to.ID()]
 	if !exists {
 		edges = map[EdgeID]Edge{}
-		neighbours[from.ID()] = edges
+		neighbours[to.ID()] = edges
 	}
 
 	if _, exists := edges[edge.ID()]; exists {
