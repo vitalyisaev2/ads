@@ -33,6 +33,13 @@ func (m *DirectedGraphMock) RemoveEdge(edge Edge, from, to Node) error {
 	return args.Error(0)
 }
 
+// TopologicalSort returns ordered list of nodes such that
+// every U stands before V if there is (U, V) edge
+func (m *DirectedGraphMock) TopologicalSort() ([]Node, error) {
+	args := m.Called()
+	return args.Get(0).([]Node), args.Error(1)
+}
+
 // TotalNodes returns the amount of nodes in the graph
 func (m *DirectedGraphMock) TotalNodes() int { return m.Called().Int(0) }
 

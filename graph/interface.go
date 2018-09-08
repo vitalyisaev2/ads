@@ -34,4 +34,7 @@ type DirectedGraph interface {
 	TotalNodes() int
 	// TotalEdges returns the amount of edges in the graph
 	TotalEdges() int
+	// TopologicalSort returns ordered list of nodes such that
+	// every U stands before V if there is (U, V) edge
+	TopologicalSort() ([]Node, error)
 }
