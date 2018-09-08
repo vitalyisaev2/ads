@@ -93,6 +93,47 @@ func errEdgeDoesNotExist(edge Edge, from, to Node) error {
 	return fmt.Errorf("edge '%s' ('%s', '%s') doesn't exist", edge.ID(), from.ID(), to.ID())
 }
 
+func (g *defaultDirectedGraph) TopologicalSort() ([]Node, error) {
+
+	// estimate amount of incoming degrees for every node
+	incomingDegrees := make(map[NodeID]int, g.TotalNodes())
+	for nodeID := range g.nodes {
+		incomingDegrees[nodeID] = 0
+	}
+	for _, toNodeSet := range g.edges {
+		for toNode := range toNodeSet {
+			incomingDegrees[toNode]++
+		}
+	}
+
+	// look up for the nodes with zero incoming degree: they are "roots" of the graph
+	var next []NodeID
+	for nodeID, count := range incomingDegrees {
+		if count == 0 {
+			next = append(next, nodeID)
+		}
+	}
+	if len(next) == 0 {
+		return nil, fmt.Errorf("cyclic graph")
+	}
+
+	// append to result every node that has no incoming edges
+	var results []Node
+	for len(next) != 0 {
+		parentID := next[0]
+		results = append(results, g.nodes[parentID])
+		for childID := range g.edges[parentID] {
+			incomingDegrees[childID]--
+			if incomingDegrees[childID] == 0 {
+				next = append(next, childID)
+			}
+		}
+		next = next[1:]
+	}
+
+	return results, nil
+}
+
 // NewDirectedGraph initializes a directed graph
 func NewDirectedGraph() DirectedGraph {
 	return &defaultDirectedGraph{

@@ -73,3 +73,76 @@ func TestDirectedGraph_BasicOperations(t *testing.T) {
 	assert.Equal(t, 0, g.TotalNodes())
 	assert.Equal(t, 0, g.TotalEdges())
 }
+
+var (
+	stubNodeA = stubNode("A")
+	stubNodeB = stubNode("B")
+	stubNodeC = stubNode("C")
+	stubNodeD = stubNode("D")
+	stubNodeE = stubNode("E")
+)
+
+func TestDirectedGraph_TopologicalSort_LinearCase(t *testing.T) {
+	// A -> B -> C -> D
+	g := NewDirectedGraph()
+	g.AddNode(stubNodeA)
+	g.AddNode(stubNodeB)
+	g.AddNode(stubNodeC)
+	g.AddNode(stubNodeD)
+	g.AddEdge(stubEdge(""), stubNodeA, stubNodeB)
+	g.AddEdge(stubEdge(""), stubNodeB, stubNodeC)
+	g.AddEdge(stubEdge(""), stubNodeC, stubNodeD)
+
+	actual, err := g.TopologicalSort()
+	assert.NoError(t, err)
+	expected := []Node{stubNodeA, stubNodeB, stubNodeC, stubNodeD}
+	assert.Equal(t, expected, actual)
+}
+
+func TestDirectedGraph_TopologicalSort_Branching(t *testing.T) {
+
+	// A -> B -> C -> E
+	//       \-> D -/
+	g := NewDirectedGraph()
+	g.AddNode(stubNodeA)
+	g.AddNode(stubNodeB)
+	g.AddNode(stubNodeC)
+	g.AddNode(stubNodeD)
+	g.AddNode(stubNodeE)
+	g.AddEdge(stubEdge(""), stubNodeA, stubNodeB)
+	g.AddEdge(stubEdge(""), stubNodeB, stubNodeC)
+	g.AddEdge(stubEdge(""), stubNodeB, stubNodeD)
+	g.AddEdge(stubEdge(""), stubNodeC, stubNodeE)
+	g.AddEdge(stubEdge(""), stubNodeD, stubNodeE)
+
+	actual, err := g.TopologicalSort()
+	assert.NoError(t, err)
+	expected1 := []Node{stubNodeA, stubNodeB, stubNodeC, stubNodeD, stubNodeE}
+	expected2 := []Node{stubNodeA, stubNodeB, stubNodeD, stubNodeC, stubNodeE}
+	expected := [][]Node{expected1, expected2}
+	assert.Contains(t, expected, actual)
+}
+
+func TestDirectedGraph_TopologicalSort_TwoRoots(t *testing.T) {
+
+	// A
+	//  \
+	//   -> C -> D
+	//  /
+	// B
+	g := NewDirectedGraph()
+	g.AddNode(stubNodeA)
+	g.AddNode(stubNodeB)
+	g.AddNode(stubNodeC)
+	g.AddNode(stubNodeD)
+	g.AddEdge(stubEdge(""), stubNodeA, stubNodeC)
+	g.AddEdge(stubEdge(""), stubNodeB, stubNodeC)
+	g.AddEdge(stubEdge(""), stubNodeC, stubNodeD)
+
+	actual, err := g.TopologicalSort()
+	assert.NoError(t, err)
+	expected1 := []Node{stubNodeA, stubNodeB, stubNodeC, stubNodeD}
+	expected2 := []Node{stubNodeB, stubNodeA, stubNodeC, stubNodeD}
+	expected := [][]Node{expected1, expected2}
+	assert.Contains(t, expected, actual)
+}
