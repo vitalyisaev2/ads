@@ -40,6 +40,12 @@ func (m *DirectedGraphMock) TopologicalSort() ([]Node, error) {
 	return args.Get(0).([]Node), args.Error(1)
 }
 
+// ShortestPath returns the shortest path between two nodes, if there are any
+func (m *DirectedGraphMock) ShortestPath(from, to Node) ([]Node, error) {
+	args := m.Called()
+	return args.Get(0).([]Node), args.Error(1)
+}
+
 // TotalNodes returns the amount of nodes in the graph
 func (m *DirectedGraphMock) TotalNodes() int { return m.Called().Int(0) }
 

@@ -141,10 +141,10 @@ func (g *defaultDirectedGraph) TopologicalSort() ([]Node, error) {
 
 func (g *defaultDirectedGraph) ShortestPath(from, to Node) ([]Node, error) {
 	// start/end nodes must exist in graph
-	if _, exists := g.nodes[from.ID()]; exists {
+	if _, exists := g.nodes[from.ID()]; !exists {
 		return nil, errNodeDoesNotExist(from)
 	}
-	if _, exists := g.nodes[to.ID()]; exists {
+	if _, exists := g.nodes[to.ID()]; !exists {
 		return nil, errNodeDoesNotExist(to)
 	}
 
@@ -154,7 +154,7 @@ func (g *defaultDirectedGraph) ShortestPath(from, to Node) ([]Node, error) {
 		return nil, err
 	}
 
-	// for every node X != from, provide the sum of weights on the shortest path on (from; X)
+	// for every node != from, provide the sum of weights on the shortest path on (from; node)
 	shortest := make(map[NodeID]EdgeWeight)
 	for nodeID := range g.nodes {
 		if nodeID == from.ID() {
@@ -167,25 +167,53 @@ func (g *defaultDirectedGraph) ShortestPath(from, to Node) ([]Node, error) {
 	// contains ID of the node preceding the current node on some of the shortest paths
 	pred := make(map[NodeID]NodeID)
 
-	// for every node U from topological order, take neighbour node V such that edge (U, V) exists
+	// for every node from topological order, take neighbour node such that edge (node, neighbour) exists
 	for _, node := range sorted {
 		for neighbourID, edges := range g.edges[node.ID()] {
 
-			// determine the edge with minimal weight
+			// determine the (node, neighbour) edge with minimal weight
 			var (
 				minEdgeWeight = EdgeWeight(math.MaxFloat64)
-				minEdgeID EdgeID
+				minEdgeID     EdgeID
 			)
 			for _, edge := range edges {
 				if minEdgeWeight > edge.Weight() {
-					minEdgeWeight = edge
+					minEdgeWeight = edge.Weight()
+					minEdgeID = edge.ID()
 				}
 			}
 
 			// relaxing procedure
-			if shortest[node.ID()] + g.edges[node.ID()][neighbourID].Weight() <
+			alternative := shortest[node.ID()] + g.edges[node.ID()][neighbourID][minEdgeID].Weight()
+			if alternative < shortest[neighbourID] {
+				shortest[neighbourID] = alternative
+				pred[neighbourID] = node.ID()
+			}
 		}
 	}
+
+	// build reversed shortest path (to, from)
+	var (
+		path    = []Node{to}
+		childID = to.ID()
+	)
+	for {
+		parentID, exists := pred[childID]
+		if !exists {
+			return nil, fmt.Errorf("no path exists between (%v, %v)", from.ID(), to.ID())
+		}
+		path = append(path, g.nodes[parentID])
+		if parentID == from.ID() {
+			break
+		}
+		childID = parentID
+	}
+
+	// reverse result
+	for i, j := 0, len(path)-1; i < j; i, j = i+1, j-1 {
+		path[i], path[j] = path[j], path[i]
+	}
+	return path, nil
 }
 
 func errEmptyNodeID(node Node) error {

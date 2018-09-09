@@ -39,7 +39,7 @@ type DirectedGraph interface {
 	// TopologicalSort returns ordered list of nodes such that
 	// every U stands before V if there is (U, V) edge
 	TopologicalSort() ([]Node, error)
-	// ShortestPath returns the shortest path between two nodes, if possible
+	// ShortestPath returns the shortest path between two nodes, if there are any
 	ShortestPath(from, to Node) ([]Node, error)
 	// TotalNodes returns the amount of nodes in the graph
 	TotalNodes() int
