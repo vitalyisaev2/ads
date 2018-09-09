@@ -61,3 +61,6 @@ type EdgeMock struct {
 
 // ID returns edge unique ID (in the scope of node pair)
 func (m *EdgeMock) ID() EdgeID { return m.Called().Get(0).(EdgeID) }
+
+// Weight returns edge's weight
+func (m *EdgeMock) Weight() float64 { return m.Called().Get(0).(float64) }

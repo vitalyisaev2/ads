@@ -10,7 +10,10 @@ type stubNode string
 
 func (node stubNode) ID() NodeID { return NodeID(node) }
 
-type stubEdge string
+type stubEdge struct {
+	id     EdgeID
+	weight Float64
+}
 
 func (edge stubEdge) ID() EdgeID { return EdgeID(edge) }
 
