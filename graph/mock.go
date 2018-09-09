@@ -40,6 +40,12 @@ func (m *DirectedGraphMock) TopologicalSort() ([]Node, error) {
 	return args.Get(0).([]Node), args.Error(1)
 }
 
+// ShortestPath returns the shortest path between two nodes, if there are any
+func (m *DirectedGraphMock) ShortestPath(from, to Node) ([]Node, error) {
+	args := m.Called()
+	return args.Get(0).([]Node), args.Error(1)
+}
+
 // TotalNodes returns the amount of nodes in the graph
 func (m *DirectedGraphMock) TotalNodes() int { return m.Called().Int(0) }
 
@@ -61,3 +67,6 @@ type EdgeMock struct {
 
 // ID returns edge unique ID (in the scope of node pair)
 func (m *EdgeMock) ID() EdgeID { return m.Called().Get(0).(EdgeID) }
+
+// Weight returns edge's weight
+func (m *EdgeMock) Weight() float64 { return m.Called().Get(0).(float64) }

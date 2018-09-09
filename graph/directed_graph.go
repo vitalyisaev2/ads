@@ -1,6 +1,9 @@
 package graph
 
-import "fmt"
+import (
+	"fmt"
+	"math"
+)
 
 var _ DirectedGraph = (*defaultDirectedGraph)(nil)
 
@@ -10,17 +13,27 @@ type defaultDirectedGraph struct {
 }
 
 func (g *defaultDirectedGraph) AddNode(node Node) error {
+	if emptyNodeID(node.ID()) {
+		return errEmptyNodeID(node)
+	}
+
 	if _, exists := g.nodes[node.ID()]; exists {
 		return fmt.Errorf("node '%s' already exists", node.ID())
 	}
+
 	g.nodes[node.ID()] = node
 	return nil
 }
 
 func (g *defaultDirectedGraph) RemoveNode(node Node) error {
+	if emptyNodeID(node.ID()) {
+		return errEmptyNodeID(node)
+	}
+
 	if _, exists := g.nodes[node.ID()]; !exists {
 		return errNodeDoesNotExist(node)
 	}
+
 	delete(g.nodes, node.ID())
 	return nil
 }
@@ -85,14 +98,6 @@ func (g *defaultDirectedGraph) TotalEdges() int {
 	return count
 }
 
-func errNodeDoesNotExist(node Node) error {
-	return fmt.Errorf("node '%s' doesn't exist", node.ID())
-}
-
-func errEdgeDoesNotExist(edge Edge, from, to Node) error {
-	return fmt.Errorf("edge '%s' ('%s', '%s') doesn't exist", edge.ID(), from.ID(), to.ID())
-}
-
 func (g *defaultDirectedGraph) TopologicalSort() ([]Node, error) {
 
 	// estimate amount of incoming degrees for every node
@@ -100,9 +105,9 @@ func (g *defaultDirectedGraph) TopologicalSort() ([]Node, error) {
 	for nodeID := range g.nodes {
 		incomingDegrees[nodeID] = 0
 	}
-	for _, toNodeSet := range g.edges {
-		for toNode := range toNodeSet {
-			incomingDegrees[toNode]++
+	for _, children := range g.edges {
+		for childID := range children {
+			incomingDegrees[childID]++
 		}
 	}
 
@@ -132,6 +137,95 @@ func (g *defaultDirectedGraph) TopologicalSort() ([]Node, error) {
 	}
 
 	return results, nil
+}
+
+func (g *defaultDirectedGraph) ShortestPath(from, to Node) ([]Node, error) {
+	// start/end nodes must exist in graph
+	if _, exists := g.nodes[from.ID()]; !exists {
+		return nil, errNodeDoesNotExist(from)
+	}
+	if _, exists := g.nodes[to.ID()]; !exists {
+		return nil, errNodeDoesNotExist(to)
+	}
+
+	// obtain ordered list of graph nodes
+	sorted, err := g.TopologicalSort()
+	if err != nil {
+		return nil, err
+	}
+
+	// for every node != from, provide the sum of weights on the shortest path on (from; node)
+	shortest := make(map[NodeID]EdgeWeight)
+	for nodeID := range g.nodes {
+		if nodeID == from.ID() {
+			shortest[nodeID] = 0
+		} else {
+			shortest[nodeID] = math.Inf(1)
+		}
+	}
+
+	// contains ID of the node preceding the current node on some of the shortest paths
+	pred := make(map[NodeID]NodeID)
+
+	// for every node from topological order, take neighbour node such that edge (node, neighbour) exists
+	for _, node := range sorted {
+		for neighbourID, edges := range g.edges[node.ID()] {
+
+			// determine the (node, neighbour) edge with minimal weight
+			var (
+				minEdgeWeight = EdgeWeight(math.MaxFloat64)
+				minEdgeID     EdgeID
+			)
+			for _, edge := range edges {
+				if minEdgeWeight > edge.Weight() {
+					minEdgeWeight = edge.Weight()
+					minEdgeID = edge.ID()
+				}
+			}
+
+			// relaxing procedure
+			alternative := shortest[node.ID()] + g.edges[node.ID()][neighbourID][minEdgeID].Weight()
+			if alternative < shortest[neighbourID] {
+				shortest[neighbourID] = alternative
+				pred[neighbourID] = node.ID()
+			}
+		}
+	}
+
+	// build reversed shortest path (to, from)
+	var (
+		path    = []Node{to}
+		childID = to.ID()
+	)
+	for {
+		parentID, exists := pred[childID]
+		if !exists {
+			return nil, fmt.Errorf("no path exists between (%v, %v)", from.ID(), to.ID())
+		}
+		path = append(path, g.nodes[parentID])
+		if parentID == from.ID() {
+			break
+		}
+		childID = parentID
+	}
+
+	// reverse result
+	for i, j := 0, len(path)-1; i < j; i, j = i+1, j-1 {
+		path[i], path[j] = path[j], path[i]
+	}
+	return path, nil
+}
+
+func errEmptyNodeID(node Node) error {
+	return fmt.Errorf("node '%v' has empty id", node)
+}
+
+func errNodeDoesNotExist(node Node) error {
+	return fmt.Errorf("node '%s' doesn't exist", node.ID())
+}
+
+func errEdgeDoesNotExist(edge Edge, from, to Node) error {
+	return fmt.Errorf("edge '%s' ('%s', '%s') doesn't exist", edge.ID(), from.ID(), to.ID())
 }
 
 // NewDirectedGraph initializes a directed graph
