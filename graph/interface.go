@@ -36,13 +36,21 @@ type DirectedGraph interface {
 	AddEdge(edge Edge, from, to Node) error
 	// RemoveEdge removes edge between two nodes
 	RemoveEdge(edge Edge, from, to Node) error
+	// TotalNodes returns the amount of nodes in the graph
+	TotalNodes() int
+	// TotalEdges returns the amount of edges in the graph
+	TotalEdges() int
+}
+
+type DirectedCyclicGraph interface {
+	DirectedGraph
+}
+
+type DirectedAcyclicGraph interface {
+	DirectedGraph
 	// TopologicalSort returns ordered list of nodes such that
 	// every U stands before V if there is (U, V) edge
 	TopologicalSort() ([]Node, error)
 	// ShortestPath returns the shortest path between two nodes, if there are any
 	ShortestPath(from, to Node) ([]Node, error)
-	// TotalNodes returns the amount of nodes in the graph
-	TotalNodes() int
-	// TotalEdges returns the amount of edges in the graph
-	TotalEdges() int
 }
