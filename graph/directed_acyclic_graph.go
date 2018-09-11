@@ -24,7 +24,7 @@ func (g *defaultDirectedAcyclicGraph) TopologicalSort() ([]Node, error) {
 		}
 	}
 
-	// look up for the nodes with zero incoming degree: they are "roots" of the graph
+	// look up for the items with zero incoming degree: they are "roots" of the graph
 	var next []NodeID
 	for nodeID, count := range incomingDegrees {
 		if count == 0 {
@@ -53,7 +53,7 @@ func (g *defaultDirectedAcyclicGraph) TopologicalSort() ([]Node, error) {
 }
 
 func (g *defaultDirectedAcyclicGraph) ShortestPath(from, to Node) ([]Node, error) {
-	// start/end nodes must exist in graph
+	// start/end items must exist in graph
 	if _, exists := g.nodes[from.ID()]; !exists {
 		return nil, errNodeDoesNotExist(from)
 	}
@@ -61,7 +61,7 @@ func (g *defaultDirectedAcyclicGraph) ShortestPath(from, to Node) ([]Node, error
 		return nil, errNodeDoesNotExist(to)
 	}
 
-	// obtain ordered list of graph nodes
+	// obtain ordered list of graph items
 	sorted, err := g.TopologicalSort()
 	if err != nil {
 		return nil, err

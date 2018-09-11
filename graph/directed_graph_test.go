@@ -26,6 +26,11 @@ var (
 	stubNodeD = stubNode("D")
 	stubNodeE = stubNode("E")
 	stubNodeF = stubNode("F")
+	weight1   = EdgeWeight(1)
+	weight2   = EdgeWeight(2)
+	weight3   = EdgeWeight(3)
+	weight4   = EdgeWeight(4)
+	weight5   = EdgeWeight(5)
 )
 
 func TestDirectedGraph_BasicOperations(t *testing.T) {
@@ -54,16 +59,16 @@ func TestDirectedGraph_BasicOperations(t *testing.T) {
 	err = g.AddEdge(edge1, node1, node2)
 	assert.Error(t, err)
 
-	// but it's possible to add another edge for the same pair of nodes
+	// but it's possible to add another edge for the same pair of items
 	edge2 := stubEdge{id: "edge2"}
 	err = g.AddEdge(edge2, node1, node2)
 	assert.NoError(t, err)
 
-	// check number of edges and nodes
+	// check number of edges and items
 	assert.Equal(t, 2, g.TotalNodes())
 	assert.Equal(t, 2, g.TotalEdges())
 
-	// delete nodes
+	// delete items
 	err = g.RemoveNode(node1)
 	assert.NoError(t, err)
 	err = g.RemoveNode(node2)
@@ -83,7 +88,7 @@ func TestDirectedGraph_BasicOperations(t *testing.T) {
 	err = g.RemoveEdge(edge2, node1, node2)
 	assert.Error(t, err)
 
-	// check number of edges and nodes
+	// check number of edges and items
 	assert.Equal(t, 0, g.TotalNodes())
 	assert.Equal(t, 0, g.TotalEdges())
 }

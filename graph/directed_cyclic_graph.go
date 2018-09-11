@@ -26,10 +26,11 @@ func (g *defaultDirectedCyclicGraph) DijkstraShortestPathes(from Node) (map[Node
 		}
 	}
 
-	// initialize mapping for the preceding nodes, lying on the shortest path
-	pred := make(map[NodeID]NodeID)
+	// initialize mapping for the preceding items, lying on the shortest path
+	// pred := make(map[NodeID]NodeID)
 
 	// for node in Q:
+	return nil, nil
 }
 
 // NewDirectedCyclicGraph returns DirectedCyclicGraph
