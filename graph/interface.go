@@ -45,6 +45,9 @@ type DirectedGraph interface {
 // DirectedCyclicGraph contains algorithms defined for cyclic graphs
 type DirectedCyclicGraph interface {
 	DirectedGraph
+	// DijkstraShortestPathes returns shortest pathes between
+	// node and all the other nodes in graph
+	DijkstraShortestPathes(from Node) (map[Node][]Node, error)
 }
 
 // DirectedAcyclicGraph contains algorithms defined for acyclic graphs only

@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestDirectedGraph_TopologicalSort_LinearCase(t *testing.T) {
+func TestDirectedAcyclicGraph_TopologicalSort_LinearCase(t *testing.T) {
 	// A -> B -> C -> D
 	g := NewDirectedAcyclicGraph()
 	g.AddNode(stubNodeA)
@@ -23,7 +23,7 @@ func TestDirectedGraph_TopologicalSort_LinearCase(t *testing.T) {
 	assert.Equal(t, expected, actual)
 }
 
-func TestDirectedGraph_TopologicalSort_Branching(t *testing.T) {
+func TestDirectedAcyclicGraph_TopologicalSort_Branching(t *testing.T) {
 
 	// A -> B -> C -> E
 	//       \-> D -/
@@ -47,7 +47,7 @@ func TestDirectedGraph_TopologicalSort_Branching(t *testing.T) {
 	assert.Contains(t, expected, actual)
 }
 
-func TestDirectedGraph_TopologicalSort_TwoRoots(t *testing.T) {
+func TestDirectedAcyclicGraph_TopologicalSort_TwoRoots(t *testing.T) {
 
 	// A
 	//  \
@@ -92,14 +92,14 @@ func shortestPathTestDirectedAcyclicGraph() DirectedAcyclicGraph {
 	return g
 }
 
-func TestDirectedGraph_ShortestPath_OK(t *testing.T) {
+func TestDirectedAcyclicGraph_ShortestPath_OK(t *testing.T) {
 	g := shortestPathTestDirectedAcyclicGraph()
 	result, err := g.ShortestPath(stubNodeB, stubNodeF)
 	assert.NoError(t, err)
 	assert.Equal(t, []Node{stubNodeB, stubNodeD, stubNodeE, stubNodeF}, result)
 }
 
-func TestDirectedGraph_ShortestPath_NoPath(t *testing.T) {
+func TestDirectedAcyclicGraph_ShortestPath_NoPath(t *testing.T) {
 	g := shortestPathTestDirectedAcyclicGraph()
 	result, err := g.ShortestPath(stubNodeB, stubNodeA)
 	assert.Error(t, err)

@@ -10,7 +10,7 @@ type nodeHeapItem struct {
 	position int
 }
 
-// nodeHeap is a heap implementation with additional memory costs
+// nodeHeap is a heap implementation with extra memory costs
 // which allows to keep heap items mutable
 type nodeHeap struct {
 	heap  []*nodeHeapItem
@@ -37,10 +37,15 @@ func (h *nodeHeap) insert(node Node, weight EdgeWeight) error {
 	return nil
 }
 
-func (h *nodeHeap) update(node Node, newWeight EdgeWeight) error {
-	item, exists := h.items[node.ID()]
+func (h *nodeHeap) exists(nodeID NodeID) bool {
+	_, exists := h.items[nodeID]
+	return exists
+}
+
+func (h *nodeHeap) update(nodeID NodeID, newWeight EdgeWeight) error {
+	item, exists := h.items[nodeID]
 	if !exists {
-		return fmt.Errorf("node doesn't exist in heap")
+		return fmt.Errorf("node '%s' doesn't exist in heap", nodeID)
 	}
 
 	// swap weights
@@ -59,7 +64,7 @@ func (h *nodeHeap) update(node Node, newWeight EdgeWeight) error {
 
 func (h *nodeHeap) siftDown(i int) int {
 	for 2*i+1 < len(h.heap) {
-		left := 2*i + 1
+		left := 2 * i
 		right := 2*i + 1
 		j := left
 		if right < len(h.heap) && h.heap[right].weight < h.heap[left].weight {
@@ -105,6 +110,8 @@ func (h *nodeHeap) min() (Node, EdgeWeight) {
 
 	return root.node, root.weight
 }
+
+func (h *nodeHeap) size() int { return len(h.heap) }
 
 // TODO: may be add constructor that builds heap for O(N): now it's O(N*logN)
 
