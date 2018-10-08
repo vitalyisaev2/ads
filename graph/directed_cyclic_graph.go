@@ -1,7 +1,6 @@
 package graph
 
 import (
-	"fmt"
 	"math"
 )
 
@@ -20,40 +19,46 @@ func (g *defaultDirectedCyclicGraph) DijkstraShortestPathes(from Node) (map[Node
 		return nil, errNodeDoesNotExist(from)
 	}
 
-	// initialize shortest path with initial values
-	shortest := make(map[NodeID]EdgeWeight, len(g.nodes))
+	// initialize queue and resulting dict with initial values
+	var (
+		shortest = make(map[NodeID]EdgeWeight, len(g.nodes))
+		queue    = newNodeHeap()
+		err      error
+	)
+	// populate heap-based priority queue
 	for _, node := range g.nodes {
 		if node.ID() != from.ID() {
+			err = queue.insert(node, math.Inf(1))
 			shortest[node.ID()] = math.Inf(1)
 		} else {
+			err = queue.insert(node, 0)
 			shortest[node.ID()] = 0
+		}
+		if err != nil {
+			return nil, err
 		}
 	}
 
 	// initialize mapping for the preceding items, lying on the shortest path
 	pred := make(map[NodeID]NodeID)
 
-	// populate heap-based priority queue
-	queue := newNodeHeap()
-	for _, node := range g.nodes {
-		if err := queue.insert(node, shortest[node.ID()]); err != nil {
-			return nil, err
-		}
-	}
-
 	// on every iteration obtain item with minimal shortest[nodeID] value,
 	// than perform relaxation procedure
 	for queue.size() != 0 {
-		curr, _ := queue.min()
+		//fmt.Println("QUEUE", queue.String())
+		curr, weight := queue.min()
+		shortest[curr.ID()] = weight
+		//fmt.Println("CURR", curr, weight)
 		for neighbourID, edges := range g.edges[curr.ID()] {
 			if queue.exists(neighbourID) {
-				fmt.Println(curr.ID(), neighbourID)
+				//fmt.Println(curr.ID(), neighbourID)
 				for _, edge := range edges {
 					// relaxation procedure
-					v := shortest[curr.ID()] + edge.Weight()
-					if v < shortest[neighbourID] {
-						shortest[neighbourID] = v
-						if err := queue.update(neighbourID, v); err != nil {
+					cost := shortest[curr.ID()] + edge.Weight()
+					//fmt.Println("COST", cost, shortest[neighbourID])
+					if cost < shortest[neighbourID] {
+						shortest[neighbourID] = cost
+						if err := queue.update(neighbourID, cost); err != nil {
 							return nil, err
 						}
 						pred[neighbourID] = curr.ID()
@@ -64,10 +69,9 @@ func (g *defaultDirectedCyclicGraph) DijkstraShortestPathes(from Node) (map[Node
 	}
 
 	// building results
-	fmt.Println(shortest)
-	fmt.Println(pred)
-	results := make(map[Node][]Node)
+	//fmt.Println(shortest)
 	//fmt.Println(pred)
+	results := make(map[Node][]Node)
 	for _, node := range g.nodes {
 		if node.ID() != from.ID() && !emptyNodeID(pred[node.ID()]) {
 			var path []Node

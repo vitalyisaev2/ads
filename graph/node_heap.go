@@ -52,11 +52,13 @@ func (h *nodeHeap) update(nodeID NodeID, newWeight EdgeWeight) error {
 	oldWeight := item.weight
 	item.weight = newWeight
 
+	fmt.Println("UPDATE", nodeID, oldWeight, newWeight)
+
 	// sift heap up / down, depending on new value
 	if oldWeight > newWeight {
-		item.position = h.siftDown(item.position)
-	} else if newWeight > oldWeight {
 		item.position = h.siftUp(item.position)
+	} else if oldWeight < newWeight {
+		item.position = h.siftDown(item.position)
 	}
 
 	return nil
@@ -64,12 +66,13 @@ func (h *nodeHeap) update(nodeID NodeID, newWeight EdgeWeight) error {
 
 func (h *nodeHeap) siftDown(i int) int {
 	for 2*i+1 < len(h.heap) {
-		left := 2 * i
-		right := 2*i + 1
+		left := 2*i + 1
+		right := 2*i + 2
 		j := left
 		if right < len(h.heap) && h.heap[right].weight < h.heap[left].weight {
 			j = right
 		}
+		fmt.Println("siftDown", left, right, len(h.heap), i, j, h.heap[i].weight, h.heap[j].weight)
 		if h.heap[i].weight <= h.heap[j].weight {
 			break
 		}
@@ -80,13 +83,16 @@ func (h *nodeHeap) siftDown(i int) int {
 }
 
 func (h *nodeHeap) siftUp(i int) int {
-	for {
-		parent := (i - 1) / 2
-		if h.heap[i].weight >= h.heap[parent].weight {
+	if i == 0 {
+		return 0
+	}
+	for h.heap[i].weight < h.heap[(i-1)/2].weight {
+		fmt.Println("siftUp", i, (i-1)/2)
+		h.heap[i], h.heap[(i-1)/2] = h.heap[(i-1)/2], h.heap[i]
+		i = (i - 1) / 2
+		if i == 0 {
 			break
 		}
-		h.heap[i], h.heap[parent] = h.heap[parent], h.heap[i]
-		i = parent
 	}
 	return i
 }
@@ -112,6 +118,14 @@ func (h *nodeHeap) min() (Node, EdgeWeight) {
 }
 
 func (h *nodeHeap) size() int { return len(h.heap) }
+
+func (h *nodeHeap) String() string {
+	var dump string
+	for _, n := range h.heap {
+		dump += fmt.Sprintf("%v: %v, ", n.node.ID(), n.weight)
+	}
+	return dump
+}
 
 // TODO: may be add constructor that builds heap for O(N): now it's O(N*logN)
 
