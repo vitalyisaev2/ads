@@ -1,7 +1,6 @@
 package graph
 
 import (
-	"fmt"
 	"math"
 	"testing"
 
@@ -56,32 +55,29 @@ func TestNodeHeap_BasicOperations_V2(t *testing.T) {
 	var err error
 	err = heap.insert(stubNodeS, EdgeWeight(0))
 	assert.NoError(t, err)
-	err = heap.insert(stubNodeZ, EdgeWeight(math.Inf(1)))
-	assert.NoError(t, err)
 	err = heap.insert(stubNodeT, EdgeWeight(math.Inf(1)))
 	assert.NoError(t, err)
 	err = heap.insert(stubNodeX, EdgeWeight(math.Inf(1)))
 	assert.NoError(t, err)
 	err = heap.insert(stubNodeY, EdgeWeight(math.Inf(1)))
 	assert.NoError(t, err)
+	err = heap.insert(stubNodeZ, EdgeWeight(math.Inf(1)))
+	assert.NoError(t, err)
 
 	curr, weight := heap.min()
 	assert.Equal(t, stubNodeS, curr)
 	assert.Equal(t, float64(0), weight)
 
-	fmt.Println(heap.String())
-
 	err = heap.update(stubNodeT.ID(), EdgeWeight(6))
 	assert.NoError(t, err)
-	fmt.Println(heap.String())
 
 	err = heap.update(stubNodeY.ID(), EdgeWeight(4))
 	assert.NoError(t, err)
-	fmt.Println(heap.String())
 
 	curr, weight = heap.min()
 	assert.Equal(t, stubNodeY, curr)
 	assert.Equal(t, EdgeWeight(4), weight)
+
 	curr, weight = heap.min()
 	assert.Equal(t, stubNodeT, curr)
 	assert.Equal(t, EdgeWeight(6), weight)

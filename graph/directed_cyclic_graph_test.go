@@ -1,7 +1,6 @@
 package graph
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/vitalyisaev2/testify/assert"
@@ -34,6 +33,12 @@ func TestDirectedCyclicGraph_Dijkstra(t *testing.T) {
 	g.AddEdge(stubEdge{weight: 7}, stubNodeZ, stubNodeS)
 
 	result, err := g.DijkstraShortestPathes(stubNodeS)
+
+	assert.Len(t, result, 4)
+	assert.Equal(t, result[stubNodeY], []Node{stubNodeY, stubNodeS})
+	assert.Equal(t, result[stubNodeT], []Node{stubNodeT, stubNodeY, stubNodeS})
+	assert.Equal(t, result[stubNodeX], []Node{stubNodeX, stubNodeT, stubNodeY, stubNodeS})
+	assert.Equal(t, result[stubNodeZ], []Node{stubNodeZ, stubNodeY, stubNodeS})
+
 	assert.NoError(t, err)
-	fmt.Println(result)
 }

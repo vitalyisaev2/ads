@@ -43,19 +43,15 @@ func (g *defaultDirectedCyclicGraph) DijkstraShortestPathes(from Node) (map[Node
 	pred := make(map[NodeID]NodeID)
 
 	// on every iteration obtain item with minimal shortest[nodeID] value,
-	// than perform relaxation procedure
+	// then perform relaxation procedure
 	for queue.size() != 0 {
-		//fmt.Println("QUEUE", queue.String())
 		curr, weight := queue.min()
 		shortest[curr.ID()] = weight
-		//fmt.Println("CURR", curr, weight)
 		for neighbourID, edges := range g.edges[curr.ID()] {
 			if queue.exists(neighbourID) {
-				//fmt.Println(curr.ID(), neighbourID)
+				// pick edge that minimizes cost for neighbour
 				for _, edge := range edges {
-					// relaxation procedure
 					cost := shortest[curr.ID()] + edge.Weight()
-					//fmt.Println("COST", cost, shortest[neighbourID])
 					if cost < shortest[neighbourID] {
 						shortest[neighbourID] = cost
 						if err := queue.update(neighbourID, cost); err != nil {
@@ -69,19 +65,21 @@ func (g *defaultDirectedCyclicGraph) DijkstraShortestPathes(from Node) (map[Node
 	}
 
 	// building results
-	//fmt.Println(shortest)
-	//fmt.Println(pred)
 	results := make(map[Node][]Node)
 	for _, node := range g.nodes {
 		if node.ID() != from.ID() && !emptyNodeID(pred[node.ID()]) {
-			var path []Node
-			results[node] = path
+			var (
+				path   []Node
+				currID = node.ID()
+			)
 
-			currID := node.ID()
 			for currID != from.ID() {
 				path = append(path, g.nodes[currID])
 				currID = pred[currID]
 			}
+			path = append(path, g.nodes[from.ID()])
+
+			results[node] = path
 		}
 	}
 	return results, nil
