@@ -21,32 +21,32 @@ func (m *DirectedGraphMock) RemoveNode(node Node) error {
 	return args.Error(0)
 }
 
-// AddEdge adds new edge between two nodes
+// AddEdge adds new edge between two items
 func (m *DirectedGraphMock) AddEdge(edge Edge, from, to Node) error {
 	args := m.Called(edge, from, to)
 	return args.Error(0)
 }
 
-// RemoveEdge removes edge between two nodes
+// RemoveEdge removes edge between two items
 func (m *DirectedGraphMock) RemoveEdge(edge Edge, from, to Node) error {
 	args := m.Called(edge, from, to)
 	return args.Error(0)
 }
 
-// TopologicalSort returns ordered list of nodes such that
+// TopologicalSort returns ordered list of items such that
 // every U stands before V if there is (U, V) edge
 func (m *DirectedGraphMock) TopologicalSort() ([]Node, error) {
 	args := m.Called()
 	return args.Get(0).([]Node), args.Error(1)
 }
 
-// ShortestPath returns the shortest path between two nodes, if there are any
+// ShortestPath returns the shortest path between two items, if there are any
 func (m *DirectedGraphMock) ShortestPath(from, to Node) ([]Node, error) {
 	args := m.Called()
 	return args.Get(0).([]Node), args.Error(1)
 }
 
-// TotalNodes returns the amount of nodes in the graph
+// TotalNodes returns the amount of items in the graph
 func (m *DirectedGraphMock) TotalNodes() int { return m.Called().Int(0) }
 
 // TotalEdges returns the amount of edges in the graph
