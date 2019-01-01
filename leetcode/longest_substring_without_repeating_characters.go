@@ -1,22 +1,25 @@
 package leetcode
 
 func lengthOfLongestSubstring(s string) int {
-	if s == "" {
-		return 0
+	if len(s) < 2 {
+		return len(s)
 	}
 
 	var (
-		chars = make(map[byte]int)
-		start = 0
-		max   = 0
+		symbols = make(map[byte]int)
+		start   = 0
+		max     = 0
 	)
-
 	for i := 0; i < len(s); i++ {
-		//fmt.Println("i", i, "start", start, "max", max)
-		c := s[i]
+		symbol := s[i]
 
 		// repeating character found
-		if j, exists := chars[c]; exists {
+		if j, exists := symbols[symbol]; exists {
+
+			// clear outdated positions from symbols
+			for p := start; p <= j; p++ {
+				delete(symbols, s[p])
+			}
 
 			// refresh max value if necessary
 			if max < i-start {
@@ -24,13 +27,43 @@ func lengthOfLongestSubstring(s string) int {
 			}
 
 			start = j + 1
-			chars[c] = i
+			symbols[symbol] = i
+
 			continue
 		}
 
 		// put character index to map
-		chars[c] = i
+		symbols[symbol] = i
+	}
+
+	// case if no repeats have been found
+	tail := len(s) - start
+	if tail == len(symbols) && tail > max {
+		max = tail
 	}
 
 	return max
+}
+
+func lengthOfLongestSubstring2(s string) int {
+	var (
+		n   = len(s)
+		ans = 0
+		m   = make(map[byte]int)
+		j   = 0
+		i   = 0
+	)
+	for ; j < n; j++ {
+		symbol := s[j]
+		if e, exists := m[symbol]; exists {
+			if i < e {
+				i = e
+			}
+		}
+		if ans < j-i+1 {
+			ans = j - i + 1
+		}
+		m[symbol] = j + 1
+	}
+	return ans
 }
