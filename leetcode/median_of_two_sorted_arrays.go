@@ -1,10 +1,137 @@
 package leetcode
 
-import (
-	"fmt"
-	"math"
+func findMedianSortedArrays(nums1 []int, nums2 []int) float64 {
+	if len(nums1) == 0 && len(nums2) == 0 {
+		panic("invalid input")
+	}
+
+	if len(nums1) == 0 {
+		panic("impl")
+		//return findMedianSortedArray(nums2)
+	}
+
+	if len(nums2) == 0 {
+		panic("impl")
+		//return findMedianSortedArray(nums1)
+	}
+
+	return 0
+}
+
+// array - helper struct that contains array of numbers
+// with index of border
+type array struct {
+	start int
+	end   int
+	index int
+	nums  []int
+}
+
+/*
+func shiftBorderRight(ixIn, end int) (ixOut, startOut int) {
+	ixOut = middle(ixIn+1, end)
+	startOut = ixIn
+	return
+}
+
+func shiftBorderLeft(ixIn, start int) (ixOut, endOut int) {
+	ixOut = middle(start, ixIn)
+	endOut = ixIn
+	return
+}
+*/
+
+func (a array) currentInterval() interval {
+	if a.index == -1 {
+		return interval{
+			right:  a.nums[0],
+			border: true,
+		}
+	} else if a.index == len(a.nums) {
+		return interval{
+			left:   a.nums[len(a.nums)-1],
+			border: true,
+		}
+	}
+	return interval{
+		left:  a.nums[a.index],
+		right: a.nums[a.index+1],
+	}
+}
+
+func (a *array) shiftIndexRight() interval {
+	var (
+		newIndex int
+		newStart int
+		result   interval
+	)
+	if newIndex == len(a.nums) {
+		// right border reached
+		panic("right border reached")
+	} else if newIndex == len(a.nums)-1 {
+		// last item before border
+		newIndex = len(a.nums)
+		newStart = a.index
+		result = interval{left: a.nums[a.index], border: true}
+	} else {
+		// common item
+		newIndex = middle(a.index+1, a.end)
+		newStart = a.index
+		result = interval{left: a.nums[newIndex], right: a.nums[newIndex+1]}
+	}
+
+	a.index = newIndex
+	a.start = newStart
+	return result
+}
+
+func middle(start, stop int) int {
+	span := stop - start
+	if span%2 == 0 {
+		return start + span/2 - 1
+	}
+	return start + span/2
+}
+
+func newArray(nums []int) *array {
+	result := &array{
+		start: 0,
+		end:   len(nums),
+		nums:  nums,
+	}
+	result.index = middle(result.start, result.end)
+	return result
+}
+
+type interval struct {
+	left   int
+	right  int
+	border bool
+}
+
+func (i interval) compare(other interval) ord {
+	if i.left < other.left {
+		return less
+	}
+	if i.left > other.left {
+		return greater
+	}
+	return equal
+}
+
+func (i interval) intersects(other interval) bool {
+	return i.left <= other.left && other.left <= i.right
+}
+
+type ord int8
+
+const (
+	less    ord = -1
+	equal   ord = 0
+	greater ord = 1
 )
 
+/*
 func findMedianSortedArrays(nums1 []int, nums2 []int) float64 {
 
 	if len(nums1) == 0 && len(nums2) == 0 {
@@ -200,3 +327,4 @@ func findMedianSortedArray(nums []int) float64 {
 
 	return float64(nums[ix])
 }
+*/

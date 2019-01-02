@@ -1,12 +1,12 @@
 package leetcode
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
+/*
 func Test_findMedianSortedArrays(t *testing.T) {
 	type testcase struct {
 		answer float64
@@ -35,4 +35,30 @@ func Test_findMedianSortedArrays(t *testing.T) {
 		fmt.Println("===============", c.num1, c.num2)
 		assert.Equal(t, c.answer, findMedianSortedArrays(c.num1, c.num2), "input: %v %v", c.num1, c.num2)
 	}
+}
+*/
+
+func Test_findMedianSortedArrays_arrayShiftIndexRight(t *testing.T) {
+	nums := []int{0, 1, 2, 3, 4, 5, 6, 7}
+
+	array := newArray(nums)
+	inter := array.currentInterval()
+	assert.Equal(t, 3, array.index)
+	assert.Equal(t, 3, inter.left)
+	assert.Equal(t, 4, inter.right)
+
+	inter = array.shiftIndexRight()
+	assert.Equal(t, 5, array.index)
+	assert.Equal(t, 5, inter.left)
+	assert.Equal(t, 6, inter.right)
+
+	inter = array.shiftIndexRight()
+	assert.Equal(t, 6, array.index)
+	assert.Equal(t, 6, inter.left)
+	assert.Equal(t, 7, inter.right)
+
+	inter = array.shiftIndexRight()
+	assert.Equal(t, 6, array.index)
+	assert.Equal(t, 6, inter.left)
+	assert.Equal(t, 7, inter.right)
 }
