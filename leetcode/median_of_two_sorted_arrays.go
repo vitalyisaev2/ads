@@ -41,9 +41,9 @@ func findMedianSortedArrays(nums1 []int, nums2 []int) float64 {
 				right1 := arr1.rightItem()
 				right2 := arr2.rightItem()
 				if right1 > right2 {
-					arr2.index += 1
+					arr2.index++
 				} else {
-					arr1.index += 1
+					arr1.index++
 				}
 			}
 
@@ -51,9 +51,9 @@ func findMedianSortedArrays(nums1 []int, nums2 []int) float64 {
 				left1 := arr1.leftItem()
 				left2 := arr2.leftItem()
 				if left1 > left2 {
-					arr1.index -= 1
+					arr1.index--
 				} else {
-					arr2.index -= 1
+					arr2.index--
 				}
 			}
 
